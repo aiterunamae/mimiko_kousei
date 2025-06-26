@@ -566,30 +566,30 @@ if 'csv_data' in st.session_state:
         if f'logic_result_{selected_row_idx}' not in st.session_state:
             if st.session_state.get('enable_logic', True):
                 with st.spinner("ロジック校正中..."):
-                # キーワードの詳細情報を取得
-                keyword_details = get_keyword_details(keywords)
-                
-                # 元キーワードとアレンジキーワードを取得
-                original_keywords = []
-                arrange_keywords = []
-                
-                # CSVの列から元キーワードとアレンジキーワードを探す
-                for col in df.columns:
-                    if '元キーワード' in col and pd.notna(selected_row[col]):
-                        original_keywords.append(selected_row[col])
-                    elif 'アレンジキーワード' in col and pd.notna(selected_row[col]):
-                        arrange_keywords.append(selected_row[col])
-                
-                # キーワード詳細情報をJSON形式で整形
-                keyword_info = json.dumps(keyword_details, ensure_ascii=False, indent=2)
-                
-                # デバッグ用にキーワード情報を保存
-                st.session_state[f'keyword_details_{selected_row_idx}'] = keyword_details
-                st.session_state[f'keyword_info_{selected_row_idx}'] = keyword_info
-                st.session_state[f'original_keywords_{selected_row_idx}'] = original_keywords
-                st.session_state[f'arrange_keywords_{selected_row_idx}'] = arrange_keywords
-                
-                logic_message = f"""質問: {current_question}
+                    # キーワードの詳細情報を取得
+                        keyword_details = get_keyword_details(keywords)
+                    
+                    # 元キーワードとアレンジキーワードを取得
+                    original_keywords = []
+                    arrange_keywords = []
+                    
+                    # CSVの列から元キーワードとアレンジキーワードを探す
+                    for col in df.columns:
+                        if '元キーワード' in col and pd.notna(selected_row[col]):
+                            original_keywords.append(selected_row[col])
+                        elif 'アレンジキーワード' in col and pd.notna(selected_row[col]):
+                            arrange_keywords.append(selected_row[col])
+                    
+                    # キーワード詳細情報をJSON形式で整形
+                    keyword_info = json.dumps(keyword_details, ensure_ascii=False, indent=2)
+                    
+                    # デバッグ用にキーワード情報を保存
+                    st.session_state[f'keyword_details_{selected_row_idx}'] = keyword_details
+                    st.session_state[f'keyword_info_{selected_row_idx}'] = keyword_info
+                    st.session_state[f'original_keywords_{selected_row_idx}'] = original_keywords
+                    st.session_state[f'arrange_keywords_{selected_row_idx}'] = arrange_keywords
+                    
+                    logic_message = f"""質問: {current_question}
 
 使用キーワード:
 {keyword_info}
@@ -600,25 +600,25 @@ if 'csv_data' in st.session_state:
 
 回答: {current_answer}
 """
-                logic_result = call_gemini(
-                    logic_prompt,
-                    logic_message,
-                    selected_model,
-                    current_project_id,
-                    current_location,
-                    current_service_account
-                )
-                
-                if logic_result:
-                    logic_json = parse_json_response(logic_result)
-                    if logic_json:
-                        st.session_state[f'logic_result_{selected_row_idx}'] = logic_result
-                        st.session_state[f'logic_json_{selected_row_idx}'] = logic_json
-                        
-                        st.session_state[f'corrections_{selected_row_idx}']['logic'] = {
-                            'score': logic_json.get('score', 0),
-                            'improvements': logic_json.get('improvements', [])
-                        }
+                    logic_result = call_gemini(
+                        logic_prompt,
+                        logic_message,
+                        selected_model,
+                        current_project_id,
+                        current_location,
+                        current_service_account
+                    )
+                    
+                    if logic_result:
+                        logic_json = parse_json_response(logic_result)
+                        if logic_json:
+                            st.session_state[f'logic_result_{selected_row_idx}'] = logic_result
+                            st.session_state[f'logic_json_{selected_row_idx}'] = logic_json
+                            
+                            st.session_state[f'corrections_{selected_row_idx}']['logic'] = {
+                                'score': logic_json.get('score', 0),
+                                'improvements': logic_json.get('improvements', [])
+                            }
             else:
                 # ロジック校正がOFFの場合
                 st.session_state[f'logic_json_{selected_row_idx}'] = {'score': 5, 'improvements': []}
@@ -923,22 +923,22 @@ if 'csv_data' in st.session_state:
             if st.session_state.get('enable_logic', True):
                 # キーワードの詳細情報を取得
                 keyword_details = get_keyword_details(keywords)
-            
-            # 元キーワードとアレンジキーワードを取得
-            original_keywords = []
-            arrange_keywords = []
-            
-            # CSVの列から元キーワードとアレンジキーワードを探す
-            for col in df.columns:
-                if '元キーワード' in col and pd.notna(row[col]):
-                    original_keywords.append(row[col])
-                elif 'アレンジキーワード' in col and pd.notna(row[col]):
-                    arrange_keywords.append(row[col])
-            
-            # キーワード詳細情報をJSON形式で整形
-            keyword_info = json.dumps(keyword_details, ensure_ascii=False, indent=2)
-            
-            logic_message = f"""質問: {current_question}
+                
+                # 元キーワードとアレンジキーワードを取得
+                original_keywords = []
+                arrange_keywords = []
+                
+                # CSVの列から元キーワードとアレンジキーワードを探す
+                for col in df.columns:
+                    if '元キーワード' in col and pd.notna(row[col]):
+                        original_keywords.append(row[col])
+                    elif 'アレンジキーワード' in col and pd.notna(row[col]):
+                        arrange_keywords.append(row[col])
+                
+                # キーワード詳細情報をJSON形式で整形
+                keyword_info = json.dumps(keyword_details, ensure_ascii=False, indent=2)
+                
+                logic_message = f"""質問: {current_question}
 
 使用キーワード:
 {keyword_info}
@@ -949,15 +949,15 @@ if 'csv_data' in st.session_state:
 
 回答: {current_answer}
 """
-            logic_result = call_gemini(
-                logic_prompt,
-                logic_message,
-                selected_model,
-                current_project_id,
-                current_location,
-                current_service_account
-            )
-            
+                logic_result = call_gemini(
+                    logic_prompt,
+                    logic_message,
+                    selected_model,
+                    current_project_id,
+                    current_location,
+                    current_service_account
+                )
+                
                 logic_json = parse_json_response(logic_result) if logic_result else None
                 if logic_json:
                     df.at[index, 'ロジックスコア'] = logic_json.get('score', 0)
