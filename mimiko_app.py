@@ -340,10 +340,6 @@ if uploaded_file is not None:
             st.session_state.csv_data = df
             st.session_state.keyword_columns = keyword_columns
             
-            # CSVが新しくアップロードされたら選択をリセット
-            if 'selected_row' in st.session_state:
-                del st.session_state.selected_row
-            
     except Exception as e:
         st.error(f"CSVファイルの読み込みエラー: {e}")
 
@@ -358,19 +354,11 @@ if 'csv_data' in st.session_state:
     # 行番号選択（1から始まる表示）
     row_options = [f"ID: {row['id']} - {row['質問'][:50]}..." for _, row in df.iterrows()]
     
-    # デフォルトインデックスの設定
-    default_index = 0
-    if 'selected_row' in st.session_state and isinstance(st.session_state.selected_row, int):
-        # 前回の選択が有効な範囲内なら使用
-        if 0 <= st.session_state.selected_row < len(df):
-            default_index = st.session_state.selected_row
-    
+    # selectboxを使用（keyを使わない方法）
     selected_row_idx = st.selectbox(
         "校正したいデータを選択してください",
         range(len(df)),
-        format_func=lambda x: row_options[x],
-        index=default_index,
-        key="selected_row"
+        format_func=lambda x: row_options[x]
     )
     
     # 選択された行のデータ
