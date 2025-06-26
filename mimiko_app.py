@@ -159,6 +159,11 @@ def parse_json_response(response):
 # Main app
 st.title("mimiko校正システム")
 
+# Initialize variables with default values
+api_key_input = google_api_key
+project_id_input = vertex_ai_project_id
+location_input = vertex_ai_location
+
 # Settings section
 with st.expander("⚙️ 設定", expanded=False):
     col1, col2 = st.columns(2)
@@ -500,6 +505,15 @@ if st.session_state.get("show_comprehensive_button", False):
     if st.button("選択した改善点で総合校正を実行") or 'comprehensive_result' in st.session_state:
         if 'comprehensive_result' not in st.session_state:
             with st.spinner("総合校正中..."):
+                # 設定の準備（comprehensive correction用）
+                if ai_provider == "Google AI":
+                    current_api_key = api_key_input
+                    current_project_id = None
+                    current_location = None
+                else:
+                    current_api_key = None
+                    current_project_id = project_id_input
+                    current_location = location_input
                 # Prepare selected improvements
                 selected_improvements = {
                     "トンマナ校正": st.session_state.get("tonmana_problems", []),
