@@ -310,6 +310,16 @@ st.info("生成アプリで出力されたCSVファイルをアップロード�
 uploaded_file = st.file_uploader("CSVファイルを選択", type=['csv'])
 
 if uploaded_file is not None:
+    # ファイル名をキーとして使用
+    file_key = f"file_{uploaded_file.name}_{uploaded_file.size}"
+    
+    # ファイルが変わったかチェック
+    if 'current_file_key' not in st.session_state or st.session_state.current_file_key != file_key:
+        st.session_state.current_file_key = file_key
+        # 新しいファイルの場合、関連するセッション状態をクリア
+        for key in list(st.session_state.keys()):
+            if key.startswith('correction_') or key.startswith('selected_') or key == 'csv_data':
+                del st.session_state[key]
     try:
         # CSVファイルを読み込み
         df = pd.read_csv(uploaded_file, encoding='utf-8-sig')
@@ -354,18 +364,28 @@ if 'csv_data' in st.session_state:
     # 行番号選択（1から始まる表示）
     row_options = [f"ID: {row['id']} - {row['質問'][:50]}..." for _, row in df.iterrows()]
     
-    # selectboxを使用（keyを使わない方法）
+    # ファイルキーを使って一意のキーを生成
+    select_key = f"row_select_{st.session_state.get('current_file_key', 'default')}"
+    
+    # selectboxを使用
     selected_row_idx = st.selectbox(
         "校正したいデータを選択してください",
         range(len(df)),
-        format_func=lambda x: row_options[x]
+        format_func=lambda x: row_options[x],
+        key=select_key
     )
     
     # 選択された行のデータ
     selected_row = df.iloc[selected_row_idx]
     
     # デバッグ情報の表示
-    st.info(f"選択されたデータ: インデックス {selected_row_idx + 1}/{len(df)}")
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.info(f"選択されたデータ: インデックス {selected_row_idx + 1}/{len(df)}")
+    with col2:
+        if st.button("選択をリセット"):
+            del st.session_state[select_key]
+            st.rerun()
     
     # プレビュー表示
     with st.expander("選択されたデータの詳細", expanded=True):
