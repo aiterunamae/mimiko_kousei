@@ -31,32 +31,43 @@ except ImportError:
 # Streamlit Cloudの場合
 if hasattr(st, "secrets"):
     try:
-        # 辞書形式でアクセス
-        google_api_key = st.secrets["google_api_key"] if "google_api_key" in st.secrets else ""
-        vertex_ai_project_id = st.secrets["vertex_ai_project_id"] if "vertex_ai_project_id" in st.secrets else ""
-        vertex_ai_location = st.secrets["vertex_ai_location"] if "vertex_ai_location" in st.secrets else "us-central1"
-        default_model = st.secrets["default_model"] if "default_model" in st.secrets else "gemini-2.0-flash-exp"
+        # 新しい形式に対応
+        google_api_key = st.secrets["api"]["gemini_api_key"] if "api" in st.secrets and "gemini_api_key" in st.secrets["api"] else ""
+        use_vertex_ai = st.secrets["api"]["use_vertex_ai"] if "api" in st.secrets and "use_vertex_ai" in st.secrets["api"] else False
+        vertex_ai_project_id = st.secrets["api"]["vertex_project"] if "api" in st.secrets and "vertex_project" in st.secrets["api"] else ""
+        vertex_ai_location = st.secrets["api"]["vertex_location"] if "api" in st.secrets and "vertex_location" in st.secrets["api"] else "us-central1"
+        default_model = st.secrets.get("default_model", "gemini-2.0-flash-exp")
+        
+        # サービスアカウント情報
+        gcp_service_account = dict(st.secrets["gcp_service_account"]) if "gcp_service_account" in st.secrets else None
     except Exception as e:
         st.error(f"Secretsの読み込みエラー: {e}")
         google_api_key = ""
+        use_vertex_ai = False
         vertex_ai_project_id = ""
         vertex_ai_location = "us-central1"
         default_model = "gemini-2.0-flash-exp"
+        gcp_service_account = None
 else:
     # ローカル環境の場合
     secrets_path = Path(__file__).parent / "secrets.toml"
     if secrets_path.exists():
         secrets = toml.load(secrets_path)
-        google_api_key = secrets.get("google_api_key", "")
-        vertex_ai_project_id = secrets.get("vertex_ai_project_id", "")
-        vertex_ai_location = secrets.get("vertex_ai_location", "us-central1")
+        api_config = secrets.get("api", {})
+        google_api_key = api_config.get("gemini_api_key", "")
+        use_vertex_ai = api_config.get("use_vertex_ai", False)
+        vertex_ai_project_id = api_config.get("vertex_project", "")
+        vertex_ai_location = api_config.get("vertex_location", "us-central1")
         default_model = secrets.get("default_model", "gemini-2.0-flash-exp")
+        gcp_service_account = secrets.get("gcp_service_account", None)
     else:
         # 環境変数から取得
         google_api_key = os.environ.get("GOOGLE_API_KEY", "")
+        use_vertex_ai = os.environ.get("USE_VERTEX_AI", "false").lower() == "true"
         vertex_ai_project_id = os.environ.get("VERTEX_AI_PROJECT_ID", "")
         vertex_ai_location = os.environ.get("VERTEX_AI_LOCATION", "us-central1")
         default_model = os.environ.get("DEFAULT_MODEL", "gemini-2.0-flash-exp")
+        gcp_service_account = None
 
 # AI プロバイダーオプション
 default_model_options = [
@@ -89,7 +100,7 @@ except Exception as e:
     st.stop()
 
 # Google AI/Vertex AI設定関数
-def setup_ai_provider(provider, model_name, api_key=None, project_id=None, location=None):
+def setup_ai_provider(provider, model_name, api_key=None, project_id=None, location=None, service_account=None):
     """AI プロバイダーを設定する"""
     try:
         if provider == "Google AI":
@@ -108,13 +119,37 @@ def setup_ai_provider(provider, model_name, api_key=None, project_id=None, locat
             if not project_id:
                 st.error("Project IDが設定されていません")
                 return None, None
+            
+            # サービスアカウント認証を使用
+            if service_account and VERTEX_AI_AVAILABLE:
+                try:
+                    from google.oauth2 import service_account as sa
+                    credentials = sa.Credentials.from_service_account_info(
+                        service_account,
+                        scopes=['https://www.googleapis.com/auth/cloud-platform']
+                    )
+                except Exception as e:
+                    st.error(f"サービスアカウント認証エラー: {e}")
+                    credentials = None
+            else:
+                credentials = None
                 
             if NEW_SDK:
-                client = genai.Client(
-                    vertexai=True,
-                    project=project_id,
-                    location=location
-                )
+                if credentials:
+                    # 認証情報を使用
+                    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = ''  # Clear any existing
+                    client = genai.Client(
+                        vertexai=True,
+                        project=project_id,
+                        location=location,
+                        credentials=credentials
+                    )
+                else:
+                    client = genai.Client(
+                        vertexai=True,
+                        project=project_id,
+                        location=location
+                    )
             else:
                 genai.configure(project=project_id, location=location)
                 client = None
@@ -129,10 +164,10 @@ def setup_ai_provider(provider, model_name, api_key=None, project_id=None, locat
         return None, None
 
 # Function to call Gemini API
-def call_gemini(prompt, user_message, provider, model_name, api_key=None, project_id=None, location=None):
+def call_gemini(prompt, user_message, provider, model_name, api_key=None, project_id=None, location=None, service_account=None):
     """Gemini APIを呼び出す"""
     try:
-        client, model = setup_ai_provider(provider, model_name, api_key, project_id, location)
+        client, model = setup_ai_provider(provider, model_name, api_key, project_id, location, service_account)
         
         if client is None and model is None:
             return None
@@ -217,10 +252,12 @@ with st.expander("⚙️ 設定", expanded=not google_api_key and not vertex_ai_
     col1, col2 = st.columns(2)
     
     with col1:
-        # プロバイダー選択
+        # プロバイダー選択（use_vertex_aiの設定に基づいてデフォルトを選択）
+        default_provider = "Vertex AI" if use_vertex_ai and VERTEX_AI_AVAILABLE else "Google AI"
         ai_provider = st.selectbox(
             "🤖 AIプロバイダー",
             ["Google AI", "Vertex AI"] if VERTEX_AI_AVAILABLE else ["Google AI"],
+            index=["Google AI", "Vertex AI"].index(default_provider) if default_provider in ["Google AI", "Vertex AI"] else 0,
             key="ai_provider"
         )
         
@@ -342,10 +379,12 @@ if st.button("校正を実行") or st.session_state.correction_done:
             current_api_key = api_key_input
             current_project_id = None
             current_location = None
+            current_service_account = None
         else:
             current_api_key = None
             current_project_id = project_id_input
             current_location = location_input
+            current_service_account = gcp_service_account
 
         # Only call APIs if not already done
         if 'tonmana_result' not in st.session_state:
@@ -367,7 +406,8 @@ if st.button("校正を実行") or st.session_state.correction_done:
                     selected_model,
                     current_api_key,
                     current_project_id,
-                    current_location
+                    current_location,
+                    current_service_account
                 )
                 if tonmana_result:
                     tonmana_json = parse_json_response(tonmana_result)
@@ -395,7 +435,8 @@ if st.button("校正を実行") or st.session_state.correction_done:
                     selected_model,
                     current_api_key,
                     current_project_id,
-                    current_location
+                    current_location,
+                    current_service_account
                 )
                 if japanese_result:
                     japanese_json = parse_json_response(japanese_result)
@@ -423,7 +464,8 @@ if st.button("校正を実行") or st.session_state.correction_done:
                     selected_model,
                     current_api_key,
                     current_project_id,
-                    current_location
+                    current_location,
+                    current_service_account
                 )
                 if logic_result:
                     logic_json = parse_json_response(logic_result)
@@ -560,10 +602,12 @@ if st.session_state.get("show_comprehensive_button", False):
                     current_api_key = api_key_input
                     current_project_id = None
                     current_location = None
+                    current_service_account = None
                 else:
                     current_api_key = None
                     current_project_id = project_id_input
                     current_location = location_input
+                    current_service_account = gcp_service_account
                 # Prepare selected improvements
                 selected_improvements = {
                     "トンマナ校正": st.session_state.get("tonmana_problems", []),
@@ -607,7 +651,8 @@ if st.session_state.get("show_comprehensive_button", False):
                     selected_model,
                     current_api_key,
                     current_project_id,
-                    current_location
+                    current_location,
+                    current_service_account
                 )
                 if comprehensive_result:
                     # Save the result to session state
