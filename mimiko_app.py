@@ -304,25 +304,52 @@ def call_gemini(prompt, user_message, model_name, project_id=None, location=None
                 # 応答のテキストを取得
                 result_text = None
                 
-                # 通常のテキスト応答
-                if hasattr(response, 'text'):
-                    result_text = response.text
-                # Gemini 2.5の思考過程を含む応答の場合
-                elif hasattr(response, 'output'):
-                    result_text = response.output
-                elif hasattr(response, 'candidates') and response.candidates:
-                    # 候補から最初のテキストを取得
-                    candidate = response.candidates[0]
-                    if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts'):
-                        parts = candidate.content.parts
-                        if parts and hasattr(parts[0], 'text'):
-                            result_text = parts[0].text
-                
-                # デバッグ情報
-                if result_text is None:
-                    st.error(f"応答からテキストを取得できませんでした")
-                    st.error(f"応答タイプ: {type(response)}")
-                    st.error(f"応答の属性: {dir(response)}")
+                try:
+                    # まず標準的な.textプロパティを試す
+                    if hasattr(response, 'text'):
+                        if callable(response.text):
+                            # textがメソッドの場合
+                            result_text = response.text()
+                        else:
+                            # textがプロパティの場合
+                            result_text = response.text
+                except Exception as e:
+                    st.warning(f"response.textの取得に失敗: {e}")
+                    
+                    # 他の方法を試す
+                    if hasattr(response, 'candidates') and response.candidates:
+                        try:
+                            # 最初の候補からテキストを取得
+                            candidate = response.candidates[0]
+                            if hasattr(candidate, 'content'):
+                                content = candidate.content
+                                if hasattr(content, 'parts') and content.parts:
+                                    # partsから最初のテキストパートを取得
+                                    for part in content.parts:
+                                        if hasattr(part, 'text'):
+                                            result_text = part.text
+                                            break
+                                elif hasattr(content, 'text'):
+                                    result_text = content.text
+                        except Exception as e2:
+                            st.error(f"候補からのテキスト取得に失敗: {e2}")
+                    
+                    # それでも取得できない場合、応答オブジェクトの詳細を表示
+                    if result_text is None:
+                        st.error(f"応答からテキストを取得できませんでした")
+                        st.error(f"応答タイプ: {type(response)}")
+                        
+                        # 応答の属性を詳しく調査
+                        if hasattr(response, '__dict__'):
+                            st.error(f"応答の内容: {response.__dict__}")
+                        
+                        # candidatesの詳細を表示
+                        if hasattr(response, 'candidates') and response.candidates:
+                            st.error(f"候補の数: {len(response.candidates)}")
+                            if response.candidates:
+                                st.error(f"最初の候補の型: {type(response.candidates[0])}")
+                                if hasattr(response.candidates[0], '__dict__'):
+                                    st.error(f"最初の候補の内容: {response.candidates[0].__dict__}")
                 
                 return result_text
             else:
