@@ -259,7 +259,7 @@ def setup_vertex_ai(model_name, project_id=None, location=None, service_account=
         return None, None
 
 # Function to call Gemini API  
-def call_gemini(prompt, user_message, model_name, project_id=None, location=None, service_account=None, max_tokens=2000):
+def call_gemini(prompt, user_message, model_name, project_id=None, location=None, service_account=None, max_tokens=2000, thinking_budget=1024):
     """Gemini APIを呼び出す"""
     try:
         client, model = setup_vertex_ai(model_name, project_id, location, service_account)
@@ -279,7 +279,7 @@ def call_gemini(prompt, user_message, model_name, project_id=None, location=None
                         max_output_tokens=max_tokens,
                         temperature=0.1,
                         thinking_config=ThinkingConfig(
-                            thinking_budget=1024,
+                            thinking_budget=thinking_budget,
                             include_thoughts=False  # 推論過程は含めない
                         )
                     )
@@ -448,50 +448,54 @@ def parse_json_response(response):
 # Main app
 st.title("mimiko校正システム")
 
-# Initialize variables with default values
-project_id_input = vertex_ai_project_id
-location_input = vertex_ai_location
-
 # Project IDが設定されていない場合の警告
 if not vertex_ai_project_id:
-    st.warning("⚠️ Vertex AI Project IDが設定されていません。設定セクションで入力してください。")
+    st.error("⚠️ Vertex AI Project IDが設定されていません。secrets.tomlファイルに設定してください。")
 
 # Settings section
-with st.expander("⚙️ 設定", expanded=not vertex_ai_project_id):
-    col1, col2 = st.columns(2)
+with st.expander("⚙️ 設定", expanded=False):
+    # モデル選択
+    selected_model = st.selectbox(
+        "🎯 モデル",
+        vertex_model_options,
+        index=0 if default_model not in vertex_model_options else vertex_model_options.index(default_model),
+        key="selected_model"
+    )
     
-    with col1:
-        # モデル選択
-        selected_model = st.selectbox(
-            "🎯 モデル",
-            vertex_model_options,
-            index=0 if default_model not in vertex_model_options else vertex_model_options.index(default_model),
-            key="selected_model"
-        )
-    
-    with col2:
-        project_id_input = st.text_input(
-            "📁 Project ID",
-            value=vertex_ai_project_id,
-            help="Google Cloud プロジェクトIDを入力してください"
-        )
-        location_input = st.text_input(
-            "🌍 Location",
-            value=vertex_ai_location,
-            help="Vertex AI のリージョンを指定してください"
-        )
+    # Thinking Budget設定（2.5モデルの場合のみ）
+    thinking_budget = 1024  # デフォルト値
+    if "2.5" in selected_model:
+        st.write("### 🧠 推論設定")
+        if "2.5-flash" in selected_model:
+            thinking_budget = st.slider(
+                "Thinking Budget",
+                min_value=0,
+                max_value=8192,
+                value=1024,
+                step=128,
+                help="推論に使用するトークン数。0に設定すると推論機能を無効化します。"
+            )
+        elif "2.5-pro" in selected_model:
+            thinking_budget = st.slider(
+                "Thinking Budget",
+                min_value=128,
+                max_value=32768,
+                value=1024,
+                step=128,
+                help="推論に使用するトークン数。Proモデルは最小128トークンが必要です。"
+            )
     
     # 校正ON/OFF設定
     st.write("### 📋 校正設定")
-    col3, col4, col5 = st.columns(3)
+    col1, col2, col3 = st.columns(3)
     
-    with col3:
+    with col1:
         enable_tonmana = st.checkbox("🎨 トンマナ校正", value=True, key="enable_tonmana")
     
-    with col4:
+    with col2:
         enable_japanese = st.checkbox("📝 日本語校正", value=False, key="enable_japanese")
     
-    with col5:
+    with col3:
         enable_logic = st.checkbox("🔍 ロジック校正", value=True, key="enable_logic")
 
 # Input section
@@ -626,8 +630,8 @@ if 'csv_data' in st.session_state:
             st.session_state[f'corrections_{selected_row_idx}'] = {}
         
         # 設定の準備
-        current_project_id = project_id_input
-        current_location = location_input
+        current_project_id = vertex_ai_project_id
+        current_location = vertex_ai_location
         current_service_account = gcp_service_account
         
         # 質問と回答を取得
@@ -660,7 +664,8 @@ if 'csv_data' in st.session_state:
                         selected_model,
                         current_project_id,
                         current_location,
-                        current_service_account
+                        current_service_account,
+                        thinking_budget=thinking_budget
                     )
                     
                     if tonmana_result:
@@ -696,7 +701,8 @@ if 'csv_data' in st.session_state:
                         selected_model,
                         current_project_id,
                         current_location,
-                        current_service_account
+                        current_service_account,
+                        thinking_budget=thinking_budget
                     )
                     
                     if japanese_result:
@@ -976,7 +982,8 @@ if 'csv_data' in st.session_state:
                         current_project_id,
                         current_location,
                         current_service_account,
-                        max_tokens=4000  # 総合校正は長い文章を出力するため大きく設定
+                        max_tokens=4000,  # 総合校正は長い文章を出力するため大きく設定
+                        thinking_budget=thinking_budget
                     )
                     
                     if comprehensive_result:
@@ -1072,8 +1079,8 @@ if 'csv_data' in st.session_state:
         df['総合校正結果'] = ""
         
         # 設定の準備
-        current_project_id = project_id_input
-        current_location = location_input
+        current_project_id = vertex_ai_project_id
+        current_location = vertex_ai_location
         current_service_account = gcp_service_account
         
         # プログレスバー
@@ -1113,7 +1120,8 @@ if 'csv_data' in st.session_state:
                     selected_model,
                     current_project_id,
                     current_location,
-                    current_service_account
+                    current_service_account,
+                    thinking_budget=thinking_budget
                 )
                 
                 tonmana_json = parse_json_response(tonmana_result) if tonmana_result else None
@@ -1133,7 +1141,8 @@ if 'csv_data' in st.session_state:
                     selected_model,
                     current_project_id,
                     current_location,
-                    current_service_account
+                    current_service_account,
+                    thinking_budget=thinking_budget
                 )
                 
                 japanese_json = parse_json_response(japanese_result) if japanese_result else None
@@ -1181,7 +1190,8 @@ if 'csv_data' in st.session_state:
                     selected_model,
                     current_project_id,
                     current_location,
-                    current_service_account
+                    current_service_account,
+                    thinking_budget=thinking_budget
                 )
                 
                 logic_json = parse_json_response(logic_result) if logic_result else None
