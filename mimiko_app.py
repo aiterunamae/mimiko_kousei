@@ -28,19 +28,35 @@ except ImportError:
     VERTEX_AI_AVAILABLE = False
 
 # Load secrets
-secrets_path = Path(__file__).parent / "secrets.toml"
-if secrets_path.exists():
-    secrets = toml.load(secrets_path)
-    google_api_key = secrets.get("google_api_key", "")
-    vertex_ai_project_id = secrets.get("vertex_ai_project_id", "")
-    vertex_ai_location = secrets.get("vertex_ai_location", "us-central1")
-    default_model = secrets.get("default_model", "gemini-2.0-flash-exp")
+# Streamlit Cloudの場合
+if hasattr(st, "secrets"):
+    try:
+        # 辞書形式でアクセス
+        google_api_key = st.secrets["google_api_key"] if "google_api_key" in st.secrets else ""
+        vertex_ai_project_id = st.secrets["vertex_ai_project_id"] if "vertex_ai_project_id" in st.secrets else ""
+        vertex_ai_location = st.secrets["vertex_ai_location"] if "vertex_ai_location" in st.secrets else "us-central1"
+        default_model = st.secrets["default_model"] if "default_model" in st.secrets else "gemini-2.0-flash-exp"
+    except Exception as e:
+        st.error(f"Secretsの読み込みエラー: {e}")
+        google_api_key = ""
+        vertex_ai_project_id = ""
+        vertex_ai_location = "us-central1"
+        default_model = "gemini-2.0-flash-exp"
 else:
-    # 環境変数から取得
-    google_api_key = os.environ.get("GOOGLE_API_KEY", "")
-    vertex_ai_project_id = os.environ.get("VERTEX_AI_PROJECT_ID", "")
-    vertex_ai_location = os.environ.get("VERTEX_AI_LOCATION", "us-central1")
-    default_model = os.environ.get("DEFAULT_MODEL", "gemini-2.0-flash-exp")
+    # ローカル環境の場合
+    secrets_path = Path(__file__).parent / "secrets.toml"
+    if secrets_path.exists():
+        secrets = toml.load(secrets_path)
+        google_api_key = secrets.get("google_api_key", "")
+        vertex_ai_project_id = secrets.get("vertex_ai_project_id", "")
+        vertex_ai_location = secrets.get("vertex_ai_location", "us-central1")
+        default_model = secrets.get("default_model", "gemini-2.0-flash-exp")
+    else:
+        # 環境変数から取得
+        google_api_key = os.environ.get("GOOGLE_API_KEY", "")
+        vertex_ai_project_id = os.environ.get("VERTEX_AI_PROJECT_ID", "")
+        vertex_ai_location = os.environ.get("VERTEX_AI_LOCATION", "us-central1")
+        default_model = os.environ.get("DEFAULT_MODEL", "gemini-2.0-flash-exp")
 
 # AI プロバイダーオプション
 default_model_options = [
@@ -184,6 +200,17 @@ location_input = vertex_ai_location
 if not google_api_key and not vertex_ai_project_id:
     st.warning("⚠️ APIキーが設定されていません。設定セクションでGoogle API KeyまたはVertex AI Project IDを入力してください。")
     st.info("Google AI Studioでキーを取得: https://makersuite.google.com/app/apikey")
+    
+    # デバッグ情報を表示
+    with st.expander("🐛 デバッグ情報", expanded=False):
+        st.write("Streamlit Secrets available:", hasattr(st, "secrets"))
+        if hasattr(st, "secrets"):
+            st.write("Secrets keys:", list(st.secrets.keys()) if hasattr(st.secrets, "keys") else "No keys method")
+            try:
+                st.write("google_api_key exists:", "google_api_key" in st.secrets)
+                st.write("google_api_key length:", len(st.secrets.get("google_api_key", "")) if "google_api_key" in st.secrets else 0)
+            except Exception as e:
+                st.write("Error checking secrets:", str(e))
 
 # Settings section
 with st.expander("⚙️ 設定", expanded=not google_api_key and not vertex_ai_project_id):
