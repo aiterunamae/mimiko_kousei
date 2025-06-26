@@ -125,7 +125,10 @@ def get_keyword_details(keywords_list):
                     # キーワードの詳細情報を辞書形式で保存
                     detail = {
                         "カテゴリ": category,
-                        "キーワード": keyword
+                        "キーワード": keyword,
+                        "CSVファイル": f"{category}キーワード.csv",
+                        "検索列": name_col,
+                        "一致": "○"
                     }
                     
                     # 他の列の情報も追加
@@ -139,8 +142,18 @@ def get_keyword_details(keywords_list):
                     keyword_details.append({
                         "カテゴリ": category,
                         "キーワード": keyword,
+                        "CSVファイル": f"{category}キーワード.csv",
+                        "検索列": name_col,
+                        "一致": "×",
                         "注意": "詳細情報が見つかりませんでした"
                     })
+            else:
+                # CSVファイルが読み込めない場合
+                keyword_details.append({
+                    "カテゴリ": category,
+                    "キーワード": keyword,
+                    "注意": "CSVファイルが読み込めませんでした"
+                })
     
     return keyword_details
 
@@ -612,9 +625,22 @@ if 'csv_data' in st.session_state:
                 
                 if f'keyword_details_{selected_row_idx}' in st.session_state:
                     keyword_details = st.session_state[f'keyword_details_{selected_row_idx}']
-                    st.write("\n**キーワード詳細情報:**")
-                    for detail in keyword_details:
-                        st.write(f"- {detail}")
+                    st.write("\n**キーワード詳細情報（各キーワードの内容）:**")
+                    
+                    for i, detail in enumerate(keyword_details, 1):
+                        st.write(f"\n**[{i}] {detail.get('カテゴリ', '')}: {detail.get('キーワード', '')}**")
+                        
+                        # 詳細情報を表形式で表示
+                        detail_items = []
+                        for key, value in detail.items():
+                            if key not in ['カテゴリ', 'キーワード']:
+                                detail_items.append(f"- **{key}**: {value}")
+                        
+                        if detail_items:
+                            for item in detail_items:
+                                st.write(item)
+                        else:
+                            st.write("- 詳細情報が見つかりませんでした")
                     
                     st.write("\n**JSON形式（AIに送信された内容）:**")
                     st.code(st.session_state[f'keyword_info_{selected_row_idx}'], language='json')
