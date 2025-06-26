@@ -77,13 +77,22 @@ def setup_ai_provider(provider, model_name, api_key=None, project_id=None, locat
     """AI プロバイダーを設定する"""
     try:
         if provider == "Google AI":
+            if not api_key:
+                st.error("Google API Keyが設定されていません")
+                return None, None
+                
             if NEW_SDK:
                 client = genai.Client(api_key=api_key)
             else:
                 genai.configure(api_key=api_key)
                 client = None
             return client, model_name
+            
         elif provider == "Vertex AI" and VERTEX_AI_AVAILABLE:
+            if not project_id:
+                st.error("Project IDが設定されていません")
+                return None, None
+                
             if NEW_SDK:
                 client = genai.Client(
                     vertexai=True,
@@ -99,6 +108,8 @@ def setup_ai_provider(provider, model_name, api_key=None, project_id=None, locat
             return None, None
     except Exception as e:
         st.error(f"AI プロバイダーの設定に失敗しました: {e}")
+        import traceback
+        st.error(traceback.format_exc())
         return None, None
 
 # Function to call Gemini API
@@ -107,6 +118,9 @@ def call_gemini(prompt, user_message, provider, model_name, api_key=None, projec
     try:
         client, model = setup_ai_provider(provider, model_name, api_key, project_id, location)
         
+        if client is None and model is None:
+            return None
+            
         # メッセージを構築
         full_message = f"{prompt}\n\n{user_message}"
         
@@ -137,6 +151,8 @@ def call_gemini(prompt, user_message, provider, model_name, api_key=None, projec
             
     except Exception as e:
         st.error(f"Gemini API呼び出しエラー: {e}")
+        import traceback
+        st.error(traceback.format_exc())
         return None
 
 # Function to parse JSON from Claude's response
@@ -164,8 +180,13 @@ api_key_input = google_api_key
 project_id_input = vertex_ai_project_id
 location_input = vertex_ai_location
 
+# APIキーが設定されていない場合の警告
+if not google_api_key and not vertex_ai_project_id:
+    st.warning("⚠️ APIキーが設定されていません。設定セクションでGoogle API KeyまたはVertex AI Project IDを入力してください。")
+    st.info("Google AI Studioでキーを取得: https://makersuite.google.com/app/apikey")
+
 # Settings section
-with st.expander("⚙️ 設定", expanded=False):
+with st.expander("⚙️ 設定", expanded=not google_api_key and not vertex_ai_project_id):
     col1, col2 = st.columns(2)
     
     with col1:
