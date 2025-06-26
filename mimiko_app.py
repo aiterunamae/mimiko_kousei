@@ -1048,7 +1048,7 @@ if 'csv_data' in st.session_state:
                             st.caption(display_text)
                             st.markdown("</div>", unsafe_allow_html=True)
                 else:
-                    st.success("✅ 改善点はありません - 日本語として完璧です！")
+                    st.success("✅ 改善点はありません")
         
         # 3. ロジック校正結果
         if f'logic_json_{selected_row_idx}' in st.session_state:
@@ -1143,7 +1143,7 @@ if 'csv_data' in st.session_state:
                         st.caption(display_text)
                         st.markdown("</div>", unsafe_allow_html=True)
             else:
-                st.success("✅ 改善点はありません - ロジックは完璧です！")
+                st.success("✅ 改善点はありません")
         
         # 総合校正ボタン
         st.header("✨ 総合校正")
@@ -1347,9 +1347,7 @@ if 'csv_data' in st.session_state:
         if len(df) > 20:
             st.warning(f"⚠️ 大量のデータ（{len(df)}件）の一括処理には時間がかかります")
         
-        col_batch1, col_batch2, col_batch3 = st.columns([1, 2, 1])
-        with col_batch2:
-            if st.button("🎯 全データを一括校正", type="secondary", use_container_width=True):
+        if st.button("🎯 全データを一括校正", type="secondary"):
                 # 結果を保存するための列を追加
                 df['トンマナスコア'] = 0
                 df['日本語スコア'] = 0
@@ -1493,7 +1491,9 @@ if 'csv_data' in st.session_state:
                 status_text.text("処理完了!")
                 
                 # 結果表示
-                st.subheader("校正結果サマリー")
+                st.subheader("📊 校正結果サマリー")
+                
+                # スコアサマリーをカード形式で表示
                 col1, col2, col3, col4 = st.columns(4)
                 
                 with col1:
@@ -1513,16 +1513,42 @@ if 'csv_data' in st.session_state:
                     st.metric("平均総合スコア", f"{avg_total:.2f}/15")
                 
                 # 結果プレビュー
-                with st.expander("結果プレビュー", expanded=True):
-                    st.dataframe(df[['id', '質問', 'トンマナスコア', '日本語スコア', 'ロジックスコア', '総合スコア', '改善点']].head(10))
+                with st.expander("📊 結果プレビュー", expanded=True):
+                    # スコア部分と改善点を分けて表示
+                    st.markdown("**スコア一覧**")
+                    score_df = df[['id', '質問', 'トンマナスコア', '日本語スコア', 'ロジックスコア', '総合スコア']].head(10)
+                    
+                    # スコアに応じて色付け
+                    styled_df = score_df.style.applymap(
+                        lambda x: 'background-color: #e8f5e9' if isinstance(x, (int, float)) and x >= 4 else 
+                                 'background-color: #fff3e0' if isinstance(x, (int, float)) and x >= 2 else 
+                                 'background-color: #ffebee' if isinstance(x, (int, float)) and x < 2 else '',
+                        subset=['トンマナスコア', '日本語スコア', 'ロジックスコア']
+                    ).applymap(
+                        lambda x: 'background-color: #e8f5e9' if isinstance(x, (int, float)) and x >= 12 else 
+                                 'background-color: #fff3e0' if isinstance(x, (int, float)) and x >= 9 else 
+                                 'background-color: #ffebee' if isinstance(x, (int, float)) and x < 9 else '',
+                        subset=['総合スコア']
+                    )
+                    st.dataframe(styled_df, use_container_width=True)
+                    
+                    # 改善点は別途表示
+                    if df['改善点'].any():
+                        st.markdown("**改善点一覧**")
+                        improvements_df = df[df['改善点'] != ''][['id', '質問', '改善点']].head(10)
+                        st.dataframe(improvements_df, use_container_width=True)
                 
                 # CSV出力
                 output_buffer = io.StringIO()
                 df.to_csv(output_buffer, index=False, encoding='utf-8-sig')
                 
-                st.download_button(
-                    label="📥 校正結果をCSVでダウンロード",
-                    data=output_buffer.getvalue(),
-                    file_name=f"mimiko_correction_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                    mime="text/csv"
-                )
+                # ダウンロードボタンを中央に配置
+                col_dl1, col_dl2, col_dl3 = st.columns([1, 2, 1])
+                with col_dl2:
+                    st.download_button(
+                        label="📥 校正結果をCSVでダウンロード",
+                        data=output_buffer.getvalue(),
+                        file_name=f"mimiko_correction_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv",
+                        use_container_width=True
+                    )
