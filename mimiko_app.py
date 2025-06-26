@@ -356,8 +356,18 @@ def parse_json_response(response):
             st.error("空の応答を受信しました")
             return None
             
-        # デバッグ用：最初の100文字を表示
-        st.info(f"応答の最初の100文字: {response[:100]}...")
+        # デバッグ用：最初の100文字を表示（本番環境ではコメントアウト）
+        # st.info(f"応答の最初の100文字: {response[:100]}...")
+        
+        # マークダウンのコードブロックを除去
+        if response.strip().startswith("```json"):
+            response = response.strip()[7:]  # ```json を除去
+            if response.endswith("```"):
+                response = response[:-3]  # 末尾の ``` を除去
+        elif response.strip().startswith("```"):
+            response = response.strip()[3:]  # ``` を除去
+            if response.endswith("```"):
+                response = response[:-3]  # 末尾の ``` を除去
         
         # Find JSON in the response
         start_idx = response.find('{')

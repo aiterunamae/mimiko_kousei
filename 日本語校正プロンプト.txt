@@ -16,11 +16,10 @@
 
 <output_format>
 出力は点数と改善点だけをjson形式で出力してください。
+マークダウンのコードブロック（```）は使用せず、純粋なJSONのみを返すこと。
 出力例：
-json
 {
   "score": ここに点数を記述,
-  "improvements": [ここに改善点を記述
-  ]
+  "improvements": [ここに改善点を記述]
 }
 </output_format>
