@@ -300,7 +300,31 @@ def call_gemini(prompt, user_message, model_name, project_id=None, location=None
                     contents=full_message,
                     config=config
                 )
-                return response.text
+                
+                # 応答のテキストを取得
+                result_text = None
+                
+                # 通常のテキスト応答
+                if hasattr(response, 'text'):
+                    result_text = response.text
+                # Gemini 2.5の思考過程を含む応答の場合
+                elif hasattr(response, 'output'):
+                    result_text = response.output
+                elif hasattr(response, 'candidates') and response.candidates:
+                    # 候補から最初のテキストを取得
+                    candidate = response.candidates[0]
+                    if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts'):
+                        parts = candidate.content.parts
+                        if parts and hasattr(parts[0], 'text'):
+                            result_text = parts[0].text
+                
+                # デバッグ情報
+                if result_text is None:
+                    st.error(f"応答からテキストを取得できませんでした")
+                    st.error(f"応答タイプ: {type(response)}")
+                    st.error(f"応答の属性: {dir(response)}")
+                
+                return result_text
             else:
                 st.error("クライアントの初期化に失敗しました")
                 return None
@@ -327,6 +351,14 @@ def call_gemini(prompt, user_message, model_name, project_id=None, location=None
 # Function to parse JSON from Claude's response
 def parse_json_response(response):
     try:
+        # 応答がNoneまたは空の場合
+        if not response:
+            st.error("空の応答を受信しました")
+            return None
+            
+        # デバッグ用：最初の100文字を表示
+        st.info(f"応答の最初の100文字: {response[:100]}...")
+        
         # Find JSON in the response
         start_idx = response.find('{')
         end_idx = response.rfind('}') + 1
@@ -335,10 +367,13 @@ def parse_json_response(response):
             return json.loads(json_str)
         else:
             st.warning("Could not find JSON in the response")
+            with st.expander("生の応答を表示", expanded=True):
+                st.code(response)
             return None
     except Exception as e:
         st.error(f"Error parsing JSON: {e}")
-        st.code(response)  # Display the raw response for debugging
+        with st.expander("生の応答を表示", expanded=True):
+            st.code(response)
         return None
 
 # Main app
