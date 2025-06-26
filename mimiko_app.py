@@ -346,6 +346,19 @@ with st.expander("⚙️ 設定", expanded=not vertex_ai_project_id):
             value=vertex_ai_location,
             help="Vertex AI のリージョンを指定してください"
         )
+    
+    # 校正ON/OFF設定
+    st.write("### 📋 校正設定")
+    col3, col4, col5 = st.columns(3)
+    
+    with col3:
+        enable_tonmana = st.checkbox("🎨 トンマナ校正", value=True, key="enable_tonmana")
+    
+    with col4:
+        enable_japanese = st.checkbox("📝 日本語校正", value=False, key="enable_japanese")
+    
+    with col5:
+        enable_logic = st.checkbox("🔍 ロジック校正", value=True, key="enable_logic")
 
 # Input section
 st.header("入力")
@@ -475,8 +488,9 @@ if 'csv_data' in st.session_state:
         
         # 1. トンマナ校正
         if f'tonmana_result_{selected_row_idx}' not in st.session_state:
-            with st.spinner("トンマナ校正中..."):
-                tonmana_message = f"""##QUESTION##
+            if st.session_state.get('enable_tonmana', True):
+                with st.spinner("トンマナ校正中..."):
+                    tonmana_message = f"""##QUESTION##
 {current_question}
 
 ##KEYWORDS##
@@ -485,57 +499,73 @@ if 'csv_data' in st.session_state:
 ##ANSWER_CAND##
 {current_answer}
 """
-                tonmana_result = call_gemini(
-                    tonmana_prompt, 
-                    tonmana_message,
-                    selected_model,
-                    current_project_id,
-                    current_location,
-                    current_service_account
-                )
-                
-                if tonmana_result:
-                    tonmana_json = parse_json_response(tonmana_result)
-                    if tonmana_json:
-                        st.session_state[f'tonmana_result_{selected_row_idx}'] = tonmana_result
-                        st.session_state[f'tonmana_json_{selected_row_idx}'] = tonmana_json
-                        
-                        st.session_state[f'corrections_{selected_row_idx}']['tonmana'] = {
-                            'score': tonmana_json.get('score', 0),
-                            'improvements': tonmana_json.get('improvements', [])
-                        }
-                    else:
-                        # JSONパースに失敗した場合、生のレスポンスを表示
-                        st.error("トンマナ校正のJSON解析に失敗しました")
-                        with st.expander("デバッグ情報", expanded=True):
-                            st.code(tonmana_result)
+                    tonmana_result = call_gemini(
+                        tonmana_prompt, 
+                        tonmana_message,
+                        selected_model,
+                        current_project_id,
+                        current_location,
+                        current_service_account
+                    )
+                    
+                    if tonmana_result:
+                        tonmana_json = parse_json_response(tonmana_result)
+                        if tonmana_json:
+                            st.session_state[f'tonmana_result_{selected_row_idx}'] = tonmana_result
+                            st.session_state[f'tonmana_json_{selected_row_idx}'] = tonmana_json
+                            
+                            st.session_state[f'corrections_{selected_row_idx}']['tonmana'] = {
+                                'score': tonmana_json.get('score', 0),
+                                'improvements': tonmana_json.get('improvements', [])
+                            }
+                        else:
+                            # JSONパースに失敗した場合、生のレスポンスを表示
+                            st.error("トンマナ校正のJSON解析に失敗しました")
+                            with st.expander("デバッグ情報", expanded=True):
+                                st.code(tonmana_result)
+            else:
+                # トンマナ校正がOFFの場合
+                st.session_state[f'tonmana_json_{selected_row_idx}'] = {'score': 5, 'improvements': []}
+                st.session_state[f'corrections_{selected_row_idx}']['tonmana'] = {
+                    'score': 5,
+                    'improvements': []
+                }
         
         # 2. 日本語校正
         if f'japanese_result_{selected_row_idx}' not in st.session_state:
-            with st.spinner("日本語校正中..."):
-                japanese_result = call_gemini(
-                    japanese_prompt,
-                    current_answer,
-                    selected_model,
-                    current_project_id,
-                    current_location,
-                    current_service_account
-                )
-                
-                if japanese_result:
-                    japanese_json = parse_json_response(japanese_result)
-                    if japanese_json:
-                        st.session_state[f'japanese_result_{selected_row_idx}'] = japanese_result
-                        st.session_state[f'japanese_json_{selected_row_idx}'] = japanese_json
-                        
-                        st.session_state[f'corrections_{selected_row_idx}']['japanese'] = {
-                            'score': japanese_json.get('score', 0),
-                            'improvements': japanese_json.get('improvements', [])
-                        }
+            if st.session_state.get('enable_japanese', False):
+                with st.spinner("日本語校正中..."):
+                    japanese_result = call_gemini(
+                        japanese_prompt,
+                        current_answer,
+                        selected_model,
+                        current_project_id,
+                        current_location,
+                        current_service_account
+                    )
+                    
+                    if japanese_result:
+                        japanese_json = parse_json_response(japanese_result)
+                        if japanese_json:
+                            st.session_state[f'japanese_result_{selected_row_idx}'] = japanese_result
+                            st.session_state[f'japanese_json_{selected_row_idx}'] = japanese_json
+                            
+                            st.session_state[f'corrections_{selected_row_idx}']['japanese'] = {
+                                'score': japanese_json.get('score', 0),
+                                'improvements': japanese_json.get('improvements', [])
+                            }
+            else:
+                # 日本語校正がOFFの場合
+                st.session_state[f'japanese_json_{selected_row_idx}'] = {'score': 5, 'improvements': []}
+                st.session_state[f'corrections_{selected_row_idx}']['japanese'] = {
+                    'score': 5,
+                    'improvements': []
+                }
         
         # 3. ロジック校正
         if f'logic_result_{selected_row_idx}' not in st.session_state:
-            with st.spinner("ロジック校正中..."):
+            if st.session_state.get('enable_logic', True):
+                with st.spinner("ロジック校正中..."):
                 # キーワードの詳細情報を取得
                 keyword_details = get_keyword_details(keywords)
                 
@@ -589,6 +619,13 @@ if 'csv_data' in st.session_state:
                             'score': logic_json.get('score', 0),
                             'improvements': logic_json.get('improvements', [])
                         }
+            else:
+                # ロジック校正がOFFの場合
+                st.session_state[f'logic_json_{selected_row_idx}'] = {'score': 5, 'improvements': []}
+                st.session_state[f'corrections_{selected_row_idx}']['logic'] = {
+                    'score': 5,
+                    'improvements': []
+                }
         
         # 校正完了フラグ
         st.session_state[f'correction_done_{selected_row_idx}'] = True
@@ -622,6 +659,11 @@ if 'csv_data' in st.session_state:
             with col1:
                 st.metric("スコア", f"{tonmana_json.get('score', 0)}/5")
             
+            # 校正がOFFの場合の表示
+            if not st.session_state.get('enable_tonmana', True):
+                with col2:
+                    st.info("トンマナ校正はスキップされました")
+            
             improvements = tonmana_json.get('improvements', [])
             if improvements:
                 st.write("**改善点を選択してください:**")
@@ -644,6 +686,11 @@ if 'csv_data' in st.session_state:
             with col1:
                 st.metric("スコア", f"{japanese_json.get('score', 0)}/5")
             
+            # 校正がOFFの場合の表示
+            if not st.session_state.get('enable_japanese', False):
+                with col2:
+                    st.info("日本語校正はスキップされました")
+            
             improvements = japanese_json.get('improvements', [])
             if improvements:
                 st.write("**改善点を選択してください:**")
@@ -665,6 +712,11 @@ if 'csv_data' in st.session_state:
             col1, col2 = st.columns([1, 3])
             with col1:
                 st.metric("スコア", f"{logic_json.get('score', 0)}/5")
+            
+            # 校正がOFFの場合の表示
+            if not st.session_state.get('enable_logic', True):
+                with col2:
+                    st.info("ロジック校正はスキップされました")
             
             # デバッグ情報：キーワード詳細を表示
             with st.expander("🔧 デバッグ: AIに送信されたキーワード情報", expanded=False):
@@ -819,7 +871,8 @@ if 'csv_data' in st.session_state:
                     keywords.append(f"{category}: {row[col]}")
             
             # 1. トンマナ校正
-            tonmana_message = f"""##QUESTION##
+            if st.session_state.get('enable_tonmana', True):
+                tonmana_message = f"""##QUESTION##
 {current_question}
 
 ##KEYWORDS##
@@ -828,42 +881,48 @@ if 'csv_data' in st.session_state:
 ##ANSWER_CAND##
 {current_answer}
 """
-            tonmana_result = call_gemini(
-                tonmana_prompt, 
-                tonmana_message,
-                selected_model,
-                current_project_id,
-                current_location,
-                current_service_account
-            )
-            
-            tonmana_json = parse_json_response(tonmana_result) if tonmana_result else None
-            if tonmana_json:
-                df.at[index, 'トンマナスコア'] = tonmana_json.get('score', 0)
-                improvements = tonmana_json.get('improvements', [])
-                if improvements:
-                    df.at[index, '改善点'] += f"【トンマナ】{', '.join(improvements)}\n"
+                tonmana_result = call_gemini(
+                    tonmana_prompt, 
+                    tonmana_message,
+                    selected_model,
+                    current_project_id,
+                    current_location,
+                    current_service_account
+                )
+                
+                tonmana_json = parse_json_response(tonmana_result) if tonmana_result else None
+                if tonmana_json:
+                    df.at[index, 'トンマナスコア'] = tonmana_json.get('score', 0)
+                    improvements = tonmana_json.get('improvements', [])
+                    if improvements:
+                        df.at[index, '改善点'] += f"【トンマナ】{', '.join(improvements)}\n"
+            else:
+                df.at[index, 'トンマナスコア'] = 5
             
             # 2. 日本語校正
-            japanese_result = call_gemini(
-                japanese_prompt,
-                current_answer,
-                selected_model,
-                current_project_id,
-                current_location,
-                current_service_account
-            )
-            
-            japanese_json = parse_json_response(japanese_result) if japanese_result else None
-            if japanese_json:
-                df.at[index, '日本語スコア'] = japanese_json.get('score', 0)
-                improvements = japanese_json.get('improvements', [])
-                if improvements:
-                    df.at[index, '改善点'] += f"【日本語】{', '.join(improvements)}\n"
+            if st.session_state.get('enable_japanese', False):
+                japanese_result = call_gemini(
+                    japanese_prompt,
+                    current_answer,
+                    selected_model,
+                    current_project_id,
+                    current_location,
+                    current_service_account
+                )
+                
+                japanese_json = parse_json_response(japanese_result) if japanese_result else None
+                if japanese_json:
+                    df.at[index, '日本語スコア'] = japanese_json.get('score', 0)
+                    improvements = japanese_json.get('improvements', [])
+                    if improvements:
+                        df.at[index, '改善点'] += f"【日本語】{', '.join(improvements)}\n"
+            else:
+                df.at[index, '日本語スコア'] = 5
             
             # 3. ロジック校正
-            # キーワードの詳細情報を取得
-            keyword_details = get_keyword_details(keywords)
+            if st.session_state.get('enable_logic', True):
+                # キーワードの詳細情報を取得
+                keyword_details = get_keyword_details(keywords)
             
             # 元キーワードとアレンジキーワードを取得
             original_keywords = []
@@ -899,12 +958,14 @@ if 'csv_data' in st.session_state:
                 current_service_account
             )
             
-            logic_json = parse_json_response(logic_result) if logic_result else None
-            if logic_json:
-                df.at[index, 'ロジックスコア'] = logic_json.get('score', 0)
-                improvements = logic_json.get('improvements', [])
-                if improvements:
-                    df.at[index, '改善点'] += f"【ロジック】{', '.join(improvements)}\n"
+                logic_json = parse_json_response(logic_result) if logic_result else None
+                if logic_json:
+                    df.at[index, 'ロジックスコア'] = logic_json.get('score', 0)
+                    improvements = logic_json.get('improvements', [])
+                    if improvements:
+                        df.at[index, '改善点'] += f"【ロジック】{', '.join(improvements)}\n"
+            else:
+                df.at[index, 'ロジックスコア'] = 5
             
             # 総合スコア計算
             total_score = df.at[index, 'トンマナスコア'] + df.at[index, '日本語スコア'] + df.at[index, 'ロジックスコア']
