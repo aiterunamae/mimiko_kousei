@@ -37,7 +37,7 @@ if hasattr(st, "secrets"):
         # 新しい形式に対応
         vertex_ai_project_id = st.secrets["api"]["vertex_project"] if "api" in st.secrets and "vertex_project" in st.secrets["api"] else ""
         vertex_ai_location = st.secrets["api"]["vertex_location"] if "api" in st.secrets and "vertex_location" in st.secrets["api"] else "us-central1"
-        default_model = st.secrets.get("default_model", "gemini-2.0-flash-exp")
+        default_model = st.secrets.get("default_model", "gemini-2.0-flash")
         
         # サービスアカウント情報
         gcp_service_account = dict(st.secrets["gcp_service_account"]) if "gcp_service_account" in st.secrets else None
@@ -45,7 +45,7 @@ if hasattr(st, "secrets"):
         st.error(f"Secretsの読み込みエラー: {e}")
         vertex_ai_project_id = ""
         vertex_ai_location = "us-central1"
-        default_model = "gemini-2.0-flash-exp"
+        default_model = "gemini-2.0-flash"
         gcp_service_account = None
 else:
     # ローカル環境の場合
@@ -55,20 +55,20 @@ else:
         api_config = secrets.get("api", {})
         vertex_ai_project_id = api_config.get("vertex_project", "")
         vertex_ai_location = api_config.get("vertex_location", "us-central1")
-        default_model = secrets.get("default_model", "gemini-2.0-flash-exp")
+        default_model = secrets.get("default_model", "gemini-2.0-flash")
         gcp_service_account = secrets.get("gcp_service_account", None)
     else:
         # 環境変数から取得
         vertex_ai_project_id = os.environ.get("VERTEX_AI_PROJECT_ID", "")
         vertex_ai_location = os.environ.get("VERTEX_AI_LOCATION", "us-central1")
-        default_model = os.environ.get("DEFAULT_MODEL", "gemini-2.0-flash-exp")
+        default_model = os.environ.get("DEFAULT_MODEL", "gemini-2.0-flash")
         gcp_service_account = None
 
 # Vertex AI モデルオプション
 vertex_model_options = [
-    "gemini-2.0-flash-exp",
-    "gemini-1.5-flash-002",
-    "gemini-1.5-pro-002"
+    "gemini-2.0-flash",
+    "gemini-2.5-flash",
+    "gemini-2.5-pro"
 ]
 
 # Load correction prompts
