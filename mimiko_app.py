@@ -567,7 +567,7 @@ if 'csv_data' in st.session_state:
             if st.session_state.get('enable_logic', True):
                 with st.spinner("ロジック校正中..."):
                     # キーワードの詳細情報を取得
-                        keyword_details = get_keyword_details(keywords)
+                    keyword_details = get_keyword_details(keywords)
                     
                     # 元キーワードとアレンジキーワードを取得
                     original_keywords = []
