@@ -77,6 +77,73 @@ def load_prompt(filename):
     with open(prompt_path, "r", encoding="utf-8") as f:
         return f.read()
 
+# Load keyword CSV files
+def load_keyword_csv(category):
+    """カテゴリに応じたキーワードCSVを読み込む"""
+    keyword_files = {
+        "ハウス": "ハウスキーワード.csv",
+        "サイン": "サインキーワード.csv",
+        "天体": "天体キーワード.csv",
+        "エレメント": "エレメントキーワード.csv",
+        "MP軸": "MP軸キーワード.csv",
+        "タロット": "タロットキーワード.csv"
+    }
+    
+    if category not in keyword_files:
+        return None
+    
+    try:
+        csv_path = Path(__file__).parent / keyword_files[category]
+        df = pd.read_csv(csv_path, encoding='utf-8-sig')
+        return df
+    except Exception as e:
+        st.warning(f"{category}キーワードの読み込みに失敗しました: {e}")
+        return None
+
+# Get keyword details from CSV
+def get_keyword_details(keywords_list):
+    """キーワードリストから詳細情報を取得"""
+    keyword_details = []
+    
+    for keyword_str in keywords_list:
+        # "カテゴリ: キーワード" の形式から分解
+        if ": " in keyword_str:
+            category, keyword = keyword_str.split(": ", 1)
+            
+            # カテゴリに応じたCSVを読み込み
+            df = load_keyword_csv(category)
+            if df is not None:
+                # キーワードに一致する行を検索
+                # 最初の列（名称列）で検索
+                name_col = df.columns[0]
+                matching_rows = df[df[name_col] == keyword]
+                
+                if not matching_rows.empty:
+                    # 最初の一致行を取得
+                    row = matching_rows.iloc[0]
+                    
+                    # キーワードの詳細情報を辞書形式で保存
+                    detail = {
+                        "カテゴリ": category,
+                        "キーワード": keyword
+                    }
+                    
+                    # 他の列の情報も追加
+                    for col in df.columns[1:]:
+                        if pd.notna(row[col]):
+                            detail[col] = row[col]
+                    
+                    keyword_details.append(detail)
+                else:
+                    # 一致しない場合は基本情報のみ
+                    keyword_details.append({
+                        "カテゴリ": category,
+                        "キーワード": keyword,
+                        "注意": "詳細情報が見つかりませんでした"
+                    })
+    
+    return keyword_details
+
 # Load all prompts (パターン類似度校正プロンプトを除く)
 try:
     tonmana_prompt = load_prompt("トンマナ校正プロンプト.txt")
@@ -362,10 +429,9 @@ if 'csv_data' in st.session_state:
                         st.session_state[f'tonmana_result_{selected_row_idx}'] = tonmana_result
                         st.session_state[f'tonmana_json_{selected_row_idx}'] = tonmana_json
                         
-                        problems = tonmana_json.get('improvements', tonmana_json.get('problems', []))
                         st.session_state[f'corrections_{selected_row_idx}']['tonmana'] = {
-                            'score': tonmana_json.get('style_score', 0),
-                            'problems': problems
+                            'score': tonmana_json.get('score', 0),
+                            'improvements': tonmana_json.get('improvements', [])
                         }
         
         # 2. 日本語校正
@@ -394,8 +460,17 @@ if 'csv_data' in st.session_state:
         # 3. ロジック校正
         if f'logic_result_{selected_row_idx}' not in st.session_state:
             with st.spinner("ロジック校正中..."):
+                # キーワードの詳細情報を取得
+                keyword_details = get_keyword_details(keywords)
+                
+                # キーワード詳細情報をJSON形式で整形
+                keyword_info = json.dumps(keyword_details, ensure_ascii=False, indent=2)
+                
                 logic_message = f"""質問: {current_question}
-使用キーワード: {', '.join(keywords) if keywords else 'なし'}
+
+使用キーワード:
+{keyword_info}
+
 回答: {current_answer}
 """
                 logic_result = call_gemini(
@@ -448,19 +523,19 @@ if 'csv_data' in st.session_state:
             tonmana_json = st.session_state[f'tonmana_json_{selected_row_idx}']
             col1, col2 = st.columns([1, 3])
             with col1:
-                st.metric("スコア", f"{tonmana_json.get('style_score', 0)}/5")
+                st.metric("スコア", f"{tonmana_json.get('score', 0)}/5")
             
-            problems = tonmana_json.get('improvements', tonmana_json.get('problems', []))
-            if problems:
+            improvements = tonmana_json.get('improvements', [])
+            if improvements:
                 st.write("**改善点を選択してください:**")
-                for i, problem in enumerate(problems):
-                    is_selected = problem in st.session_state[f'selected_tonmana_{selected_row_idx}']
-                    if st.checkbox(problem, key=f"tonmana_cb_{selected_row_idx}_{i}", value=is_selected):
-                        if problem not in st.session_state[f'selected_tonmana_{selected_row_idx}']:
-                            st.session_state[f'selected_tonmana_{selected_row_idx}'].append(problem)
+                for i, improvement in enumerate(improvements):
+                    is_selected = improvement in st.session_state[f'selected_tonmana_{selected_row_idx}']
+                    if st.checkbox(improvement, key=f"tonmana_cb_{selected_row_idx}_{i}", value=is_selected):
+                        if improvement not in st.session_state[f'selected_tonmana_{selected_row_idx}']:
+                            st.session_state[f'selected_tonmana_{selected_row_idx}'].append(improvement)
                     else:
-                        if problem in st.session_state[f'selected_tonmana_{selected_row_idx}']:
-                            st.session_state[f'selected_tonmana_{selected_row_idx}'].remove(problem)
+                        if improvement in st.session_state[f'selected_tonmana_{selected_row_idx}']:
+                            st.session_state[f'selected_tonmana_{selected_row_idx}'].remove(improvement)
             else:
                 st.info("改善点はありません")
         
@@ -628,10 +703,10 @@ if 'csv_data' in st.session_state:
             
             tonmana_json = parse_json_response(tonmana_result) if tonmana_result else None
             if tonmana_json:
-                df.at[index, 'トンマナスコア'] = tonmana_json.get('style_score', 0)
-                problems = tonmana_json.get('improvements', tonmana_json.get('problems', []))
-                if problems:
-                    df.at[index, '改善点'] += f"【トンマナ】{', '.join(problems)}\n"
+                df.at[index, 'トンマナスコア'] = tonmana_json.get('score', 0)
+                improvements = tonmana_json.get('improvements', [])
+                if improvements:
+                    df.at[index, '改善点'] += f"【トンマナ】{', '.join(improvements)}\n"
             
             # 2. 日本語校正
             japanese_result = call_gemini(
@@ -651,8 +726,17 @@ if 'csv_data' in st.session_state:
                     df.at[index, '改善点'] += f"【日本語】{', '.join(improvements)}\n"
             
             # 3. ロジック校正
+            # キーワードの詳細情報を取得
+            keyword_details = get_keyword_details(keywords)
+            
+            # キーワード詳細情報をJSON形式で整形
+            keyword_info = json.dumps(keyword_details, ensure_ascii=False, indent=2)
+            
             logic_message = f"""質問: {current_question}
-使用キーワード: {', '.join(keywords) if keywords else 'なし'}
+
+使用キーワード:
+{keyword_info}
+
 回答: {current_answer}
 """
             logic_result = call_gemini(
