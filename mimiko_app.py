@@ -598,8 +598,29 @@ if 'csv_data' in st.session_state:
         st.write(f"**回答:**")
         st.text_area("", value=selected_row['回答'], height=150, disabled=True)
     
-    # 個別校正実行ボタン
-    if st.button("🔍 この回答を校正する") or f'correction_done_{selected_row_idx}' in st.session_state:
+    # 校正ボタンとリセットボタン
+    col_btn1, col_btn2 = st.columns([2, 1])
+    
+    with col_btn1:
+        do_correction = st.button("🔍 この回答を校正する", use_container_width=True)
+    
+    with col_btn2:
+        if f'correction_done_{selected_row_idx}' in st.session_state:
+            if st.button("🔄 結果をリセット", use_container_width=True):
+                # 選択されたデータに関連するセッション状態をクリア
+                keys_to_remove = []
+                for key in st.session_state.keys():
+                    if f'_{selected_row_idx}' in key:
+                        keys_to_remove.append(key)
+                
+                for key in keys_to_remove:
+                    del st.session_state[key]
+                
+                st.success("校正結果をリセットしました")
+                st.rerun()
+    
+    # 個別校正実行
+    if do_correction or f'correction_done_{selected_row_idx}' in st.session_state:
         # セッション状態の初期化
         if f'corrections_{selected_row_idx}' not in st.session_state:
             st.session_state[f'corrections_{selected_row_idx}'] = {}
