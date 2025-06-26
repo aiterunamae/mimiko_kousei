@@ -539,17 +539,34 @@ if 'csv_data' in st.session_state:
                 # キーワードの詳細情報を取得
                 keyword_details = get_keyword_details(keywords)
                 
+                # 元キーワードとアレンジキーワードを取得
+                original_keywords = []
+                arrange_keywords = []
+                
+                # CSVの列から元キーワードとアレンジキーワードを探す
+                for col in df.columns:
+                    if '元キーワード' in col and pd.notna(selected_row[col]):
+                        original_keywords.append(selected_row[col])
+                    elif 'アレンジキーワード' in col and pd.notna(selected_row[col]):
+                        arrange_keywords.append(selected_row[col])
+                
                 # キーワード詳細情報をJSON形式で整形
                 keyword_info = json.dumps(keyword_details, ensure_ascii=False, indent=2)
                 
                 # デバッグ用にキーワード情報を保存
                 st.session_state[f'keyword_details_{selected_row_idx}'] = keyword_details
                 st.session_state[f'keyword_info_{selected_row_idx}'] = keyword_info
+                st.session_state[f'original_keywords_{selected_row_idx}'] = original_keywords
+                st.session_state[f'arrange_keywords_{selected_row_idx}'] = arrange_keywords
                 
                 logic_message = f"""質問: {current_question}
 
 使用キーワード:
 {keyword_info}
+
+元キーワード: {', '.join(original_keywords) if original_keywords else 'なし'}
+
+アレンジキーワード: {', '.join(arrange_keywords) if arrange_keywords else 'なし'}
 
 回答: {current_answer}
 """
@@ -651,9 +668,20 @@ if 'csv_data' in st.session_state:
             
             # デバッグ情報：キーワード詳細を表示
             with st.expander("🔧 デバッグ: AIに送信されたキーワード情報", expanded=False):
-                # 元のキーワードリスト
-                st.write("**元のキーワード（CSVから取得）:**")
+                # カテゴリ別キーワードリスト
+                st.write("**カテゴリ別キーワード（CSVから取得）:**")
                 st.write(f"{', '.join(keywords) if keywords else 'なし'}")
+                
+                # 元キーワードとアレンジキーワード
+                if f'original_keywords_{selected_row_idx}' in st.session_state:
+                    st.write("\n**元キーワード:**")
+                    orig_kws = st.session_state[f'original_keywords_{selected_row_idx}']
+                    st.write(f"{', '.join(orig_kws) if orig_kws else 'なし'}")
+                
+                if f'arrange_keywords_{selected_row_idx}' in st.session_state:
+                    st.write("\n**アレンジキーワード:**")
+                    arr_kws = st.session_state[f'arrange_keywords_{selected_row_idx}']
+                    st.write(f"{', '.join(arr_kws) if arr_kws else 'なし'}")
                 
                 if f'keyword_details_{selected_row_idx}' in st.session_state:
                     keyword_details = st.session_state[f'keyword_details_{selected_row_idx}']
@@ -837,6 +865,17 @@ if 'csv_data' in st.session_state:
             # キーワードの詳細情報を取得
             keyword_details = get_keyword_details(keywords)
             
+            # 元キーワードとアレンジキーワードを取得
+            original_keywords = []
+            arrange_keywords = []
+            
+            # CSVの列から元キーワードとアレンジキーワードを探す
+            for col in df.columns:
+                if '元キーワード' in col and pd.notna(row[col]):
+                    original_keywords.append(row[col])
+                elif 'アレンジキーワード' in col and pd.notna(row[col]):
+                    arrange_keywords.append(row[col])
+            
             # キーワード詳細情報をJSON形式で整形
             keyword_info = json.dumps(keyword_details, ensure_ascii=False, indent=2)
             
@@ -844,6 +883,10 @@ if 'csv_data' in st.session_state:
 
 使用キーワード:
 {keyword_info}
+
+元キーワード: {', '.join(original_keywords) if original_keywords else 'なし'}
+
+アレンジキーワード: {', '.join(arrange_keywords) if arrange_keywords else 'なし'}
 
 回答: {current_answer}
 """
