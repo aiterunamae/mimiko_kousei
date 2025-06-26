@@ -433,6 +433,11 @@ if 'csv_data' in st.session_state:
                             'score': tonmana_json.get('score', 0),
                             'improvements': tonmana_json.get('improvements', [])
                         }
+                    else:
+                        # JSONパースに失敗した場合、生のレスポンスを表示
+                        st.error("トンマナ校正のJSON解析に失敗しました")
+                        with st.expander("デバッグ情報", expanded=True):
+                            st.code(tonmana_result)
         
         # 2. 日本語校正
         if f'japanese_result_{selected_row_idx}' not in st.session_state:
