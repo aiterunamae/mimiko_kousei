@@ -328,10 +328,12 @@ if st.button("校正を実行") or st.session_state.correction_done:
                         st.session_state.tonmana_json = tonmana_json
                         
                         # Store in session state
+                        # プロンプトではimprovementsという名前だが、内部的にproblemsとして扱う
+                        problems = tonmana_json.get('improvements', tonmana_json.get('problems', []))
                         st.session_state.corrections["tonmana"] = {
                             "score": tonmana_json.get('style_score', 'N/A'),
                             "comment": tonmana_json.get('comment', 'N/A'),
-                            "problems": tonmana_json.get('problems', [])
+                            "problems": problems
                         }
         
         if 'japanese_result' not in st.session_state:
@@ -411,7 +413,7 @@ if st.button("校正を実行") or st.session_state.correction_done:
             st.write(f"スコア: {tonmana_json.get('style_score', 'N/A')}/5")
             st.write(f"コメント: {tonmana_json.get('comment', 'N/A')}")
             
-            problems = tonmana_json.get('problems', [])
+            problems = tonmana_json.get('improvements', tonmana_json.get('problems', []))
             if problems:
                 st.write("改善点:")
                 for i, problem in enumerate(problems):
