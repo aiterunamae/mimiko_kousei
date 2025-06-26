@@ -990,6 +990,76 @@ if 'csv_data' in st.session_state:
     # 区切り線
     st.divider()
     
+    # 個別校正結果のダウンロード
+    st.header("📥 個別校正結果のダウンロード")
+    
+    # 校正済みのデータを収集
+    corrected_data = []
+    for idx in range(len(df)):
+        if f'correction_done_{idx}' in st.session_state:
+            row_data = df.iloc[idx].to_dict()
+            
+            # 校正結果を追加
+            if f'corrections_{idx}' in st.session_state:
+                corrections = st.session_state[f'corrections_{idx}']
+                
+                # スコアを追加
+                row_data['トンマナスコア'] = corrections.get('tonmana', {}).get('score', 0)
+                row_data['日本語スコア'] = corrections.get('japanese', {}).get('score', 0)
+                row_data['ロジックスコア'] = corrections.get('logic', {}).get('score', 0)
+                row_data['総合スコア'] = (
+                    row_data['トンマナスコア'] + 
+                    row_data['日本語スコア'] + 
+                    row_data['ロジックスコア']
+                )
+                
+                # 改善点を追加
+                improvements = []
+                if corrections.get('tonmana', {}).get('improvements'):
+                    improvements.extend([f"【トンマナ】{imp}" for imp in corrections['tonmana']['improvements']])
+                if corrections.get('japanese', {}).get('improvements'):
+                    improvements.extend([f"【日本語】{imp}" for imp in corrections['japanese']['improvements']])
+                if corrections.get('logic', {}).get('improvements'):
+                    improvements.extend([f"【ロジック】{imp}" for imp in corrections['logic']['improvements']])
+                
+                row_data['改善点'] = '\n'.join(improvements) if improvements else ''
+                
+                # 総合校正結果を追加
+                if f'comprehensive_result_{idx}' in st.session_state:
+                    row_data['総合校正結果'] = st.session_state[f'comprehensive_result_{idx}']
+                else:
+                    row_data['総合校正結果'] = ''
+                
+            corrected_data.append(row_data)
+    
+    if corrected_data:
+        st.success(f"✅ {len(corrected_data)}件の校正済みデータがあります")
+        
+        # データフレームに変換
+        result_df = pd.DataFrame(corrected_data)
+        
+        # プレビュー表示
+        with st.expander("校正済みデータのプレビュー", expanded=False):
+            display_columns = ['id', '質問', 'トンマナスコア', '日本語スコア', 'ロジックスコア', '総合スコア']
+            st.dataframe(result_df[display_columns])
+        
+        # CSVダウンロードボタン
+        output_buffer = io.StringIO()
+        result_df.to_csv(output_buffer, index=False, encoding='utf-8-sig')
+        
+        st.download_button(
+            label="📥 個別校正結果をCSVでダウンロード",
+            data=output_buffer.getvalue(),
+            file_name=f"mimiko_individual_corrections_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+            mime="text/csv",
+            use_container_width=True
+        )
+    else:
+        st.info("まだ校正済みのデータがありません。上記で個別に校正を実行してください。")
+    
+    # 区切り線
+    st.divider()
+    
     # 一括処理ボタン
     st.header("🚀 一括処理")
     if st.button("全データを一括校正"):
