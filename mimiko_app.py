@@ -11,6 +11,7 @@ import io
 try:
     import google.genai as genai
     from google.genai import types
+    from google.genai.types import GenerateContentConfig, ThinkingConfig
     NEW_SDK = True
 except ImportError:
     try:
@@ -37,7 +38,7 @@ if hasattr(st, "secrets"):
         # 新しい形式に対応
         vertex_ai_project_id = st.secrets["api"]["vertex_project"] if "api" in st.secrets and "vertex_project" in st.secrets["api"] else ""
         vertex_ai_location = st.secrets["api"]["vertex_location"] if "api" in st.secrets and "vertex_location" in st.secrets["api"] else "us-central1"
-        default_model = st.secrets.get("default_model", "gemini-2.0-flash")
+        default_model = st.secrets.get("default_model", "gemini-2.0-flash-002")
         
         # サービスアカウント情報
         gcp_service_account = dict(st.secrets["gcp_service_account"]) if "gcp_service_account" in st.secrets else None
@@ -45,7 +46,7 @@ if hasattr(st, "secrets"):
         st.error(f"Secretsの読み込みエラー: {e}")
         vertex_ai_project_id = ""
         vertex_ai_location = "us-central1"
-        default_model = "gemini-2.0-flash"
+        default_model = "gemini-2.0-flash-002"
         gcp_service_account = None
 else:
     # ローカル環境の場合
@@ -55,20 +56,20 @@ else:
         api_config = secrets.get("api", {})
         vertex_ai_project_id = api_config.get("vertex_project", "")
         vertex_ai_location = api_config.get("vertex_location", "us-central1")
-        default_model = secrets.get("default_model", "gemini-2.0-flash")
+        default_model = secrets.get("default_model", "gemini-2.0-flash-002")
         gcp_service_account = secrets.get("gcp_service_account", None)
     else:
         # 環境変数から取得
         vertex_ai_project_id = os.environ.get("VERTEX_AI_PROJECT_ID", "")
         vertex_ai_location = os.environ.get("VERTEX_AI_LOCATION", "us-central1")
-        default_model = os.environ.get("DEFAULT_MODEL", "gemini-2.0-flash")
+        default_model = os.environ.get("DEFAULT_MODEL", "gemini-2.0-flash-002")
         gcp_service_account = None
 
 # Vertex AI モデルオプション
 vertex_model_options = [
-    "gemini-2.0-flash",
-    "gemini-2.5-flash",
-    "gemini-2.5-pro"
+    "gemini-2.0-flash-002",
+    "gemini-2.5-flash-001",
+    "gemini-2.5-pro-001"
 ]
 
 # Load correction prompts
@@ -265,13 +266,26 @@ def call_gemini(prompt, user_message, model_name, project_id=None, location=None
         
         if NEW_SDK:
             if client:
-                response = client.models.generate_content(
-                    model=model,
-                    contents=full_message,
-                    config=types.GenerateContentConfig(
+                # Gemini 2.5モデルの場合、ThinkingConfigを使用可能
+                if "2.5" in model:
+                    config = GenerateContentConfig(
+                        max_output_tokens=1000,
+                        temperature=0.1,
+                        thinking_config=ThinkingConfig(
+                            thinking_budget=1024,
+                            include_thoughts=False  # 推論過程は含めない
+                        )
+                    )
+                else:
+                    config = GenerateContentConfig(
                         max_output_tokens=1000,
                         temperature=0.1,
                     )
+                
+                response = client.models.generate_content(
+                    model=model,
+                    contents=full_message,
+                    config=config
                 )
                 return response.text
             else:
