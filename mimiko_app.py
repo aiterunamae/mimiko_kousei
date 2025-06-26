@@ -446,14 +446,118 @@ def parse_json_response(response):
         return None
 
 # Main app
-st.title("mimiko校正システム")
+# カスタムCSSを適用
+st.markdown("""
+<style>
+    /* メインタイトルのスタイリング */
+    .main-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 2rem;
+        border-radius: 20px;
+        text-align: center;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    
+    .main-header h1 {
+        color: white;
+        margin: 0;
+        font-size: 3rem;
+    }
+    
+    .main-header p {
+        color: rgba(255,255,255,0.9);
+        margin-top: 0.5rem;
+        font-size: 1.2rem;
+    }
+    
+    /* ボタンのスタイリング */
+    .stButton > button {
+        transition: all 0.3s ease;
+        border-radius: 10px;
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    
+    /* メトリックのスタイリング */
+    [data-testid="metric-container"] {
+        background-color: #f8f9fa;
+        border: 1px solid #e9ecef;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    /* プログレスバーのスタイリング */
+    .stProgress > div > div > div {
+        height: 20px;
+        border-radius: 10px;
+    }
+    
+    /* エキスパンダーのスタイリング */
+    .streamlit-expanderHeader {
+        font-weight: 600;
+        background-color: #f8f9fa;
+        border-radius: 10px;
+        padding: 1rem;
+    }
+    
+    /* サクセスメッセージのスタイリング */
+    .element-container:has(.stSuccess), 
+    .element-container:has(.stInfo), 
+    .element-container:has(.stWarning), 
+    .element-container:has(.stError) {
+        animation: fadeIn 0.5s ease;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* セクションヘッダーのスタイリング */
+    h2 {
+        color: #4a5568;
+        border-bottom: 3px solid #667eea;
+        padding-bottom: 0.5rem;
+        margin-top: 2rem;
+    }
+    
+    h3 {
+        color: #4a5568;
+        margin-top: 1.5rem;
+    }
+    
+    /* チェックボックスのスタイリング */
+    .stCheckbox {
+        padding: 0.5rem;
+        border-radius: 8px;
+        transition: background-color 0.3s ease;
+    }
+    
+    .stCheckbox:hover {
+        background-color: #f8f9fa;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# メインヘッダー
+st.markdown("""
+<div class="main-header">
+    <h1>🌙 mimiko校正システム</h1>
+    <p>AI占い師の回答をプロフェッショナルに校正</p>
+</div>
+""", unsafe_allow_html=True)
 
 # Project IDが設定されていない場合の警告
 if not vertex_ai_project_id:
     st.error("⚠️ Vertex AI Project IDが設定されていません。secrets.tomlファイルに設定してください。")
 
 # Settings section
-with st.expander("⚙️ 設定", expanded=False):
+with st.expander("⚙️ 詳細設定", expanded=False):
     # モデル選択
     selected_model = st.selectbox(
         "🎯 モデル",
@@ -802,7 +906,39 @@ if 'csv_data' in st.session_state:
                 if correction_type in corrections:
                     total_score += corrections[correction_type].get('score', 0)
         
-        st.success(f"**総合スコア: {total_score}/15点**")
+        # スコアに応じて色分けしたメッセージ
+        score_percentage = (total_score / 15) * 100
+        
+        # スコアメッセージをカード形式で表示
+        if score_percentage >= 80:
+            st.markdown(f"""
+            <div style='background: linear-gradient(135deg, #4caf50 0%, #8bc34a 100%); 
+                        padding: 20px; border-radius: 15px; text-align: center; color: white;
+                        box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);'>
+                <h2 style='margin: 0; color: white;'>🎉 総合スコア: {total_score}/15点</h2>
+                <p style='margin: 10px 0 0 0; font-size: 18px;'>素晴らしい出来です！</p>
+            </div>
+            """, unsafe_allow_html=True)
+        elif score_percentage >= 60:
+            st.markdown(f"""
+            <div style='background: linear-gradient(135deg, #2196f3 0%, #64b5f6 100%); 
+                        padding: 20px; border-radius: 15px; text-align: center; color: white;
+                        box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);'>
+                <h2 style='margin: 0; color: white;'>📊 総合スコア: {total_score}/15点</h2>
+                <p style='margin: 10px 0 0 0; font-size: 18px;'>良い内容ですが、改善の余地があります</p>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+            <div style='background: linear-gradient(135deg, #ff9800 0%, #ffb74d 100%); 
+                        padding: 20px; border-radius: 15px; text-align: center; color: white;
+                        box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);'>
+                <h2 style='margin: 0; color: white;'>⚠️ 総合スコア: {total_score}/15点</h2>
+                <p style='margin: 10px 0 0 0; font-size: 18px;'>改善が必要です</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        st.markdown("<br>", unsafe_allow_html=True)
         
         # 改善点選択用のセッション状態初期化
         if f'selected_tonmana_{selected_row_idx}' not in st.session_state:
@@ -814,80 +950,141 @@ if 'csv_data' in st.session_state:
         
         # 1. トンマナ校正結果
         if f'tonmana_json_{selected_row_idx}' in st.session_state:
-            st.subheader("🎨 トンマナ校正結果")
-            tonmana_json = st.session_state[f'tonmana_json_{selected_row_idx}']
-            col1, col2 = st.columns([1, 3])
-            with col1:
-                st.metric("スコア", f"{tonmana_json.get('score', 0)}/5")
-            
-            # 校正がOFFの場合の表示
-            if not st.session_state.get('enable_tonmana', True):
+            with st.container():
+                st.subheader("🎨 トンマナ校正結果")
+                tonmana_json = st.session_state[f'tonmana_json_{selected_row_idx}']
+                
+                # スコアをプログレスバーで表示
+                col1, col2, col3 = st.columns([2, 1, 3])
+                with col1:
+                    score = tonmana_json.get('score', 0)
+                    st.progress(score / 5, text=f"スコア: {score}/5")
+                
                 with col2:
-                    st.info("トンマナ校正はスキップされました")
+                    # スコアに応じた絵文字
+                    if score >= 4:
+                        st.markdown("### 😊")
+                    elif score >= 3:
+                        st.markdown("### 🙂")
+                    else:
+                        st.markdown("### 😔")
+                
+                # 校正がOFFの場合の表示
+                if not st.session_state.get('enable_tonmana', True):
+                    with col3:
+                        st.info("トンマナ校正はスキップされました")
             
             improvements = tonmana_json.get('improvements', [])
             if improvements:
-                st.write("**改善点を選択してください:**")
-                for i, improvement in enumerate(improvements):
-                    # 改善点のテキストを安全に処理
-                    safe_improvement = str(improvement).replace('\n', ' ').replace('\r', ' ').strip()
-                    # 長すぎる場合は切り詰める
-                    display_text = safe_improvement[:200] + "..." if len(safe_improvement) > 200 else safe_improvement
-                    
-                    is_selected = improvement in st.session_state[f'selected_tonmana_{selected_row_idx}']
-                    if st.checkbox(display_text, key=f"tonmana_cb_{selected_row_idx}_{i}", value=is_selected, help=safe_improvement if len(safe_improvement) > 200 else None):
-                        if improvement not in st.session_state[f'selected_tonmana_{selected_row_idx}']:
-                            st.session_state[f'selected_tonmana_{selected_row_idx}'].append(improvement)
-                    else:
-                        if improvement in st.session_state[f'selected_tonmana_{selected_row_idx}']:
-                            st.session_state[f'selected_tonmana_{selected_row_idx}'].remove(improvement)
+                with st.expander(f"💡 改善点 ({len(improvements)}件)", expanded=True):
+                    st.caption("改善を適用したい項目を選択してください：")
+                    for i, improvement in enumerate(improvements):
+                        # 改善点のテキストを安全に処理
+                        safe_improvement = str(improvement).replace('\n', ' ').replace('\r', ' ').strip()
+                        # 長すぎる場合は切り詰める
+                        display_text = safe_improvement[:200] + "..." if len(safe_improvement) > 200 else safe_improvement
+                        
+                        is_selected = improvement in st.session_state[f'selected_tonmana_{selected_row_idx}']
+                        
+                        # 選択状態に応じて背景色を変更
+                        if is_selected:
+                            st.markdown(f"<div style='background-color: #e3f2fd; padding: 10px; border-radius: 5px; margin: 5px 0;'>", unsafe_allow_html=True)
+                        else:
+                            st.markdown(f"<div style='background-color: #f5f5f5; padding: 10px; border-radius: 5px; margin: 5px 0;'>", unsafe_allow_html=True)
+                        
+                        if st.checkbox(f"改善点 {i+1}", key=f"tonmana_cb_{selected_row_idx}_{i}", value=is_selected, help=safe_improvement):
+                            if improvement not in st.session_state[f'selected_tonmana_{selected_row_idx}']:
+                                st.session_state[f'selected_tonmana_{selected_row_idx}'].append(improvement)
+                        else:
+                            if improvement in st.session_state[f'selected_tonmana_{selected_row_idx}']:
+                                st.session_state[f'selected_tonmana_{selected_row_idx}'].remove(improvement)
+                        
+                        st.caption(display_text)
+                        st.markdown("</div>", unsafe_allow_html=True)
             else:
-                st.info("改善点はありません")
+                st.success("✅ 改善点はありません - 素晴らしい仕上がりです！")
         
         # 2. 日本語校正結果
         if f'japanese_json_{selected_row_idx}' in st.session_state:
-            st.subheader("📝 日本語校正結果")
-            japanese_json = st.session_state[f'japanese_json_{selected_row_idx}']
-            col1, col2 = st.columns([1, 3])
-            with col1:
-                st.metric("スコア", f"{japanese_json.get('score', 0)}/5")
-            
-            # 校正がOFFの場合の表示
-            if not st.session_state.get('enable_japanese', False):
+            with st.container():
+                st.subheader("📝 日本語校正結果")
+                japanese_json = st.session_state[f'japanese_json_{selected_row_idx}']
+                
+                # スコアをプログレスバーで表示
+                col1, col2, col3 = st.columns([2, 1, 3])
+                with col1:
+                    score = japanese_json.get('score', 0)
+                    st.progress(score / 5, text=f"スコア: {score}/5")
+                
                 with col2:
-                    st.info("日本語校正はスキップされました")
-            
-            improvements = japanese_json.get('improvements', [])
-            if improvements:
-                st.write("**改善点を選択してください:**")
-                for i, improvement in enumerate(improvements):
-                    # 改善点のテキストを安全に処理
-                    safe_improvement = str(improvement).replace('\n', ' ').replace('\r', ' ').strip()
-                    # 長すぎる場合は切り詰める
-                    display_text = safe_improvement[:200] + "..." if len(safe_improvement) > 200 else safe_improvement
-                    
-                    is_selected = improvement in st.session_state[f'selected_japanese_{selected_row_idx}']
-                    if st.checkbox(display_text, key=f"japanese_cb_{selected_row_idx}_{i}", value=is_selected, help=safe_improvement if len(safe_improvement) > 200 else None):
-                        if improvement not in st.session_state[f'selected_japanese_{selected_row_idx}']:
-                            st.session_state[f'selected_japanese_{selected_row_idx}'].append(improvement)
+                    # スコアに応じた絵文字
+                    if score >= 4:
+                        st.markdown("### 😊")
+                    elif score >= 3:
+                        st.markdown("### 🙂")
                     else:
-                        if improvement in st.session_state[f'selected_japanese_{selected_row_idx}']:
-                            st.session_state[f'selected_japanese_{selected_row_idx}'].remove(improvement)
-            else:
-                st.info("改善点はありません")
+                        st.markdown("### 😔")
+                
+                # 校正がOFFの場合の表示
+                if not st.session_state.get('enable_japanese', False):
+                    with col3:
+                        st.info("日本語校正はスキップされました")
+                
+                improvements = japanese_json.get('improvements', [])
+                if improvements:
+                    with st.expander(f"💡 改善点 ({len(improvements)}件)", expanded=True):
+                        st.caption("改善を適用したい項目を選択してください：")
+                        for i, improvement in enumerate(improvements):
+                            # 改善点のテキストを安全に処理
+                            safe_improvement = str(improvement).replace('\n', ' ').replace('\r', ' ').strip()
+                            # 長すぎる場合は切り詰める
+                            display_text = safe_improvement[:200] + "..." if len(safe_improvement) > 200 else safe_improvement
+                            
+                            is_selected = improvement in st.session_state[f'selected_japanese_{selected_row_idx}']
+                            
+                            # 選択状態に応じて背景色を変更
+                            if is_selected:
+                                st.markdown(f"<div style='background-color: #fff3e0; padding: 10px; border-radius: 5px; margin: 5px 0;'>", unsafe_allow_html=True)
+                            else:
+                                st.markdown(f"<div style='background-color: #f5f5f5; padding: 10px; border-radius: 5px; margin: 5px 0;'>", unsafe_allow_html=True)
+                            
+                            if st.checkbox(f"改善点 {i+1}", key=f"japanese_cb_{selected_row_idx}_{i}", value=is_selected, help=safe_improvement):
+                                if improvement not in st.session_state[f'selected_japanese_{selected_row_idx}']:
+                                    st.session_state[f'selected_japanese_{selected_row_idx}'].append(improvement)
+                            else:
+                                if improvement in st.session_state[f'selected_japanese_{selected_row_idx}']:
+                                    st.session_state[f'selected_japanese_{selected_row_idx}'].remove(improvement)
+                            
+                            st.caption(display_text)
+                            st.markdown("</div>", unsafe_allow_html=True)
+                else:
+                    st.success("✅ 改善点はありません - 日本語として完璧です！")
         
         # 3. ロジック校正結果
         if f'logic_json_{selected_row_idx}' in st.session_state:
-            st.subheader("🔍 ロジック校正結果")
-            logic_json = st.session_state[f'logic_json_{selected_row_idx}']
-            col1, col2 = st.columns([1, 3])
-            with col1:
-                st.metric("スコア", f"{logic_json.get('score', 0)}/5")
-            
-            # 校正がOFFの場合の表示
-            if not st.session_state.get('enable_logic', True):
+            with st.container():
+                st.subheader("🔍 ロジック校正結果")
+                logic_json = st.session_state[f'logic_json_{selected_row_idx}']
+                
+                # スコアをプログレスバーで表示
+                col1, col2, col3 = st.columns([2, 1, 3])
+                with col1:
+                    score = logic_json.get('score', 0)
+                    st.progress(score / 5, text=f"スコア: {score}/5")
+                
                 with col2:
-                    st.info("ロジック校正はスキップされました")
+                    # スコアに応じた絵文字
+                    if score >= 4:
+                        st.markdown("### 😊")
+                    elif score >= 3:
+                        st.markdown("### 🙂")
+                    else:
+                        st.markdown("### 😔")
+                
+                # 校正がOFFの場合の表示
+                if not st.session_state.get('enable_logic', True):
+                    with col3:
+                        st.info("ロジック校正はスキップされました")
             
             # デバッグ情報：キーワード詳細を表示
             with st.expander("🔧 デバッグ: AIに送信されたキーワード情報", expanded=False):
@@ -930,22 +1127,33 @@ if 'csv_data' in st.session_state:
             
             improvements = logic_json.get('improvements', [])
             if improvements:
-                st.write("**改善点を選択してください:**")
-                for i, improvement in enumerate(improvements):
-                    # 改善点のテキストを安全に処理
-                    safe_improvement = str(improvement).replace('\n', ' ').replace('\r', ' ').strip()
-                    # 長すぎる場合は切り詰める
-                    display_text = safe_improvement[:200] + "..." if len(safe_improvement) > 200 else safe_improvement
-                    
-                    is_selected = improvement in st.session_state[f'selected_logic_{selected_row_idx}']
-                    if st.checkbox(display_text, key=f"logic_cb_{selected_row_idx}_{i}", value=is_selected, help=safe_improvement if len(safe_improvement) > 200 else None):
-                        if improvement not in st.session_state[f'selected_logic_{selected_row_idx}']:
-                            st.session_state[f'selected_logic_{selected_row_idx}'].append(improvement)
-                    else:
-                        if improvement in st.session_state[f'selected_logic_{selected_row_idx}']:
-                            st.session_state[f'selected_logic_{selected_row_idx}'].remove(improvement)
+                with st.expander(f"💡 改善点 ({len(improvements)}件)", expanded=True):
+                    st.caption("改善を適用したい項目を選択してください：")
+                    for i, improvement in enumerate(improvements):
+                        # 改善点のテキストを安全に処理
+                        safe_improvement = str(improvement).replace('\n', ' ').replace('\r', ' ').strip()
+                        # 長すぎる場合は切り詰める
+                        display_text = safe_improvement[:200] + "..." if len(safe_improvement) > 200 else safe_improvement
+                        
+                        is_selected = improvement in st.session_state[f'selected_logic_{selected_row_idx}']
+                        
+                        # 選択状態に応じて背景色を変更
+                        if is_selected:
+                            st.markdown(f"<div style='background-color: #ffebee; padding: 10px; border-radius: 5px; margin: 5px 0;'>", unsafe_allow_html=True)
+                        else:
+                            st.markdown(f"<div style='background-color: #f5f5f5; padding: 10px; border-radius: 5px; margin: 5px 0;'>", unsafe_allow_html=True)
+                        
+                        if st.checkbox(f"改善点 {i+1}", key=f"logic_cb_{selected_row_idx}_{i}", value=is_selected, help=safe_improvement):
+                            if improvement not in st.session_state[f'selected_logic_{selected_row_idx}']:
+                                st.session_state[f'selected_logic_{selected_row_idx}'].append(improvement)
+                        else:
+                            if improvement in st.session_state[f'selected_logic_{selected_row_idx}']:
+                                st.session_state[f'selected_logic_{selected_row_idx}'].remove(improvement)
+                        
+                        st.caption(display_text)
+                        st.markdown("</div>", unsafe_allow_html=True)
             else:
-                st.info("改善点はありません")
+                st.success("✅ 改善点はありません - ロジックは完璧です！")
         
         # 総合校正ボタン
         st.header("✨ 総合校正")
@@ -1006,8 +1214,43 @@ if 'csv_data' in st.session_state:
             
             # 総合校正結果表示
             if f'comprehensive_result_{selected_row_idx}' in st.session_state:
-                st.subheader("総合校正結果")
-                st.write(st.session_state[f'comprehensive_result_{selected_row_idx}'])
+                st.subheader("📝 総合校正結果")
+                
+                # 元の回答と比較表示
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown("**🔸 元の回答**")
+                    with st.container():
+                        st.markdown(f"<div style='background-color: #fff3e0; padding: 15px; border-radius: 10px; max-height: 400px; overflow-y: auto;'>{current_answer}</div>", unsafe_allow_html=True)
+                
+                with col2:
+                    st.markdown("**✨ 校正後の回答**")
+                    with st.container():
+                        corrected_text = st.session_state[f'comprehensive_result_{selected_row_idx}']
+                        st.markdown(f"<div style='background-color: #e8f5e9; padding: 15px; border-radius: 10px; max-height: 400px; overflow-y: auto;'>{corrected_text}</div>", unsafe_allow_html=True)
+                
+                # 適用された改善点のサマリー
+                if any([
+                    st.session_state.get(f'selected_tonmana_{selected_row_idx}', []),
+                    st.session_state.get(f'selected_japanese_{selected_row_idx}', []),
+                    st.session_state.get(f'selected_logic_{selected_row_idx}', [])
+                ]):
+                    with st.expander("📌 適用された改善点", expanded=False):
+                        if st.session_state.get(f'selected_tonmana_{selected_row_idx}'):
+                            st.markdown("**🎨 トンマナ改善:**")
+                            for imp in st.session_state[f'selected_tonmana_{selected_row_idx}']:
+                                st.write(f"- {imp}")
+                        
+                        if st.session_state.get(f'selected_japanese_{selected_row_idx}'):
+                            st.markdown("**📝 日本語改善:**")
+                            for imp in st.session_state[f'selected_japanese_{selected_row_idx}']:
+                                st.write(f"- {imp}")
+                        
+                        if st.session_state.get(f'selected_logic_{selected_row_idx}'):
+                            st.markdown("**🔍 ロジック改善:**")
+                            for imp in st.session_state[f'selected_logic_{selected_row_idx}']:
+                                st.write(f"- {imp}")
     
     # 区切り線
     st.divider()
@@ -1055,27 +1298,52 @@ if 'csv_data' in st.session_state:
             corrected_data.append(row_data)
     
     if corrected_data:
-        st.success(f"✅ {len(corrected_data)}件の校正済みデータがあります")
+        # スコアサマリー表示
+        col_sum1, col_sum2, col_sum3 = st.columns(3)
         
         # データフレームに変換
         result_df = pd.DataFrame(corrected_data)
         
+        # 平均スコア計算
+        avg_tonmana = result_df['トンマナスコア'].mean() if 'トンマナスコア' in result_df else 0
+        avg_japanese = result_df['日本語スコア'].mean() if '日本語スコア' in result_df else 0
+        avg_logic = result_df['ロジックスコア'].mean() if 'ロジックスコア' in result_df else 0
+        
+        with col_sum1:
+            st.metric("🎨 トンマナ平均", f"{avg_tonmana:.2f}/5")
+        with col_sum2:
+            st.metric("📝 日本語平均", f"{avg_japanese:.2f}/5")
+        with col_sum3:
+            st.metric("🔍 ロジック平均", f"{avg_logic:.2f}/5")
+        
+        st.success(f"✅ {len(corrected_data)}件の校正済みデータがあります")
+        
         # プレビュー表示
-        with st.expander("校正済みデータのプレビュー", expanded=False):
+        with st.expander("📊 校正済みデータのプレビュー", expanded=False):
             display_columns = ['id', '質問', 'トンマナスコア', '日本語スコア', 'ロジックスコア', '総合スコア']
-            st.dataframe(result_df[display_columns])
+            # スコアに応じて色付け
+            styled_df = result_df[display_columns].style.applymap(
+                lambda x: 'background-color: #e8f5e9' if isinstance(x, (int, float)) and x >= 4 else 
+                         'background-color: #fff3e0' if isinstance(x, (int, float)) and x >= 2 else 
+                         'background-color: #ffebee' if isinstance(x, (int, float)) and x < 2 else '',
+                subset=['トンマナスコア', '日本語スコア', 'ロジックスコア', '総合スコア']
+            )
+            st.dataframe(styled_df)
         
         # CSVダウンロードボタン
         output_buffer = io.StringIO()
         result_df.to_csv(output_buffer, index=False, encoding='utf-8-sig')
         
-        st.download_button(
-            label="📥 個別校正結果をCSVでダウンロード",
-            data=output_buffer.getvalue(),
-            file_name=f"mimiko_individual_corrections_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-            mime="text/csv",
-            use_container_width=True
-        )
+        col_dl1, col_dl2, col_dl3 = st.columns([1, 2, 1])
+        with col_dl2:
+            st.download_button(
+                label="📥 個別校正結果をCSVでダウンロード",
+                data=output_buffer.getvalue(),
+                file_name=f"mimiko_individual_corrections_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv",
+                use_container_width=True,
+                type="primary"
+            )
     else:
         st.info("まだ校正済みのデータがありません。上記で個別に校正を実行してください。")
     
@@ -1083,8 +1351,15 @@ if 'csv_data' in st.session_state:
     st.divider()
     
     # 一括処理ボタン
-    st.header("🚀 一括処理")
-    if st.button("全データを一括校正"):
+    with st.container():
+        st.header("🚀 一括処理")
+        
+        if len(df) > 20:
+            st.warning(f"⚠️ 大量のデータ（{len(df)}件）の一括処理には時間がかかります")
+        
+        col_batch1, col_batch2, col_batch3 = st.columns([1, 2, 1])
+        with col_batch2:
+            if st.button("🎯 全データを一括校正", type="secondary", use_container_width=True):
         # 結果を保存するための列を追加
         df['トンマナスコア'] = 0
         df['日本語スコア'] = 0
