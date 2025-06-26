@@ -465,12 +465,6 @@ st.markdown("""
         font-size: 3rem;
     }
     
-    .main-header p {
-        color: rgba(255,255,255,0.9);
-        margin-top: 0.5rem;
-        font-size: 1.2rem;
-    }
-    
     /* ボタンのスタイリング */
     .stButton > button {
         transition: all 0.3s ease;
@@ -548,7 +542,6 @@ st.markdown("""
 st.markdown("""
 <div class="main-header">
     <h1>🌙 mimiko校正システム</h1>
-    <p>AI占い師の回答をプロフェッショナルに校正</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -916,7 +909,6 @@ if 'csv_data' in st.session_state:
                         padding: 20px; border-radius: 15px; text-align: center; color: white;
                         box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);'>
                 <h2 style='margin: 0; color: white;'>🎉 総合スコア: {total_score}/15点</h2>
-                <p style='margin: 10px 0 0 0; font-size: 18px;'>素晴らしい出来です！</p>
             </div>
             """, unsafe_allow_html=True)
         elif score_percentage >= 60:
@@ -925,7 +917,6 @@ if 'csv_data' in st.session_state:
                         padding: 20px; border-radius: 15px; text-align: center; color: white;
                         box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);'>
                 <h2 style='margin: 0; color: white;'>📊 総合スコア: {total_score}/15点</h2>
-                <p style='margin: 10px 0 0 0; font-size: 18px;'>良い内容ですが、改善の余地があります</p>
             </div>
             """, unsafe_allow_html=True)
         else:
@@ -934,7 +925,6 @@ if 'csv_data' in st.session_state:
                         padding: 20px; border-radius: 15px; text-align: center; color: white;
                         box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);'>
                 <h2 style='margin: 0; color: white;'>⚠️ 総合スコア: {total_score}/15点</h2>
-                <p style='margin: 10px 0 0 0; font-size: 18px;'>改善が必要です</p>
             </div>
             """, unsafe_allow_html=True)
         
@@ -963,11 +953,11 @@ if 'csv_data' in st.session_state:
                 with col2:
                     # スコアに応じた絵文字
                     if score >= 4:
-                        st.markdown("### 😊")
+                        st.markdown("### ✅")
                     elif score >= 3:
-                        st.markdown("### 🙂")
+                        st.markdown("### ⚠️")
                     else:
-                        st.markdown("### 😔")
+                        st.markdown("### ❌")
                 
                 # 校正がOFFの場合の表示
                 if not st.session_state.get('enable_tonmana', True):
@@ -1002,7 +992,7 @@ if 'csv_data' in st.session_state:
                         st.caption(display_text)
                         st.markdown("</div>", unsafe_allow_html=True)
             else:
-                st.success("✅ 改善点はありません - 素晴らしい仕上がりです！")
+                st.success("✅ 改善点はありません")
         
         # 2. 日本語校正結果
         if f'japanese_json_{selected_row_idx}' in st.session_state:
@@ -1019,11 +1009,11 @@ if 'csv_data' in st.session_state:
                 with col2:
                     # スコアに応じた絵文字
                     if score >= 4:
-                        st.markdown("### 😊")
+                        st.markdown("### ✅")
                     elif score >= 3:
-                        st.markdown("### 🙂")
+                        st.markdown("### ⚠️")
                     else:
-                        st.markdown("### 😔")
+                        st.markdown("### ❌")
                 
                 # 校正がOFFの場合の表示
                 if not st.session_state.get('enable_japanese', False):
@@ -1075,11 +1065,11 @@ if 'csv_data' in st.session_state:
                 with col2:
                     # スコアに応じた絵文字
                     if score >= 4:
-                        st.markdown("### 😊")
+                        st.markdown("### ✅")
                     elif score >= 3:
-                        st.markdown("### 🙂")
+                        st.markdown("### ⚠️")
                     else:
-                        st.markdown("### 😔")
+                        st.markdown("### ❌")
                 
                 # 校正がOFFの場合の表示
                 if not st.session_state.get('enable_logic', True):
