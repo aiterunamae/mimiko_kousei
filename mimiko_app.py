@@ -361,31 +361,33 @@ if 'csv_data' in st.session_state:
     # 行選択
     st.subheader("📝 データ選択")
     
-    # 行番号選択（1から始まる表示）
-    row_options = [f"ID: {row['id']} - {row['質問'][:50]}..." for _, row in df.iterrows()]
+    # データ一覧を表示
+    with st.expander("データ一覧", expanded=False):
+        for idx, row in df.iterrows():
+            st.write(f"**[{idx+1}]** ID: {row['id']} - {row['質問'][:80]}...")
     
-    # ファイルキーを使って一意のキーを生成
-    select_key = f"row_select_{st.session_state.get('current_file_key', 'default')}"
+    # 数値入力で選択
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        # number_inputを使用
+        row_number = st.number_input(
+            "データ番号",
+            min_value=1,
+            max_value=len(df),
+            value=1,
+            step=1,
+            help=f"1から{len(df)}の番号を入力"
+        )
+        selected_row_idx = row_number - 1  # 0ベースのインデックスに変換
     
-    # selectboxを使用
-    selected_row_idx = st.selectbox(
-        "校正したいデータを選択してください",
-        range(len(df)),
-        format_func=lambda x: row_options[x],
-        key=select_key
-    )
+    with col2:
+        # 選択されたデータの簡易表示
+        if 0 <= selected_row_idx < len(df):
+            row = df.iloc[selected_row_idx]
+            st.write(f"**選択中:** ID: {row['id']} - {row['質問'][:50]}...")
     
     # 選択された行のデータ
     selected_row = df.iloc[selected_row_idx]
-    
-    # デバッグ情報の表示
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        st.info(f"選択されたデータ: インデックス {selected_row_idx + 1}/{len(df)}")
-    with col2:
-        if st.button("選択をリセット"):
-            del st.session_state[select_key]
-            st.rerun()
     
     # プレビュー表示
     with st.expander("選択されたデータの詳細", expanded=True):
