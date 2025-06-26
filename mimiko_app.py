@@ -101,6 +101,14 @@ def load_keyword_csv(category):
         return None
 
 # Get keyword details from CSV
+def normalize_numbers(text):
+    """全角数字を半角数字に変換"""
+    if not isinstance(text, str):
+        return text
+    # 全角数字を半角数字に変換
+    trans_table = str.maketrans('０１２３４５６７８９', '0123456789')
+    return text.translate(trans_table)
+
 def get_keyword_details(keywords_list):
     """キーワードリストから詳細情報を取得"""
     keyword_details = []
@@ -116,11 +124,33 @@ def get_keyword_details(keywords_list):
                 # キーワードに一致する行を検索
                 # 最初の列（名称列）で検索
                 name_col = df.columns[0]
-                matching_rows = df[df[name_col] == keyword]
+                
+                # 数字を正規化して検索
+                normalized_keyword = normalize_numbers(keyword)
+                
+                # CSV側の数字も正規化して比較
+                df_normalized = df.copy()
+                df_normalized[name_col] = df_normalized[name_col].apply(normalize_numbers)
+                
+                # 完全一致で検索
+                matching_rows = df_normalized[df_normalized[name_col] == normalized_keyword]
+                
+                # 完全一致が見つからない場合、「第」を含む/含まないパターンも試す
+                if matching_rows.empty and category == "ハウス":
+                    if normalized_keyword.startswith("第"):
+                        # 「第」を除いて検索
+                        alt_keyword = normalized_keyword[1:]
+                        matching_rows = df_normalized[df_normalized[name_col] == alt_keyword]
+                    else:
+                        # 「第」を追加して検索
+                        alt_keyword = "第" + normalized_keyword
+                        matching_rows = df_normalized[df_normalized[name_col] == alt_keyword]
                 
                 if not matching_rows.empty:
-                    # 最初の一致行を取得
-                    row = matching_rows.iloc[0]
+                    # 最初の一致行のインデックスを取得
+                    matched_idx = matching_rows.index[0]
+                    # 元のデータフレームから行を取得
+                    row = df.iloc[matched_idx]
                     
                     # キーワードの詳細情報を辞書形式で保存
                     detail = {
@@ -128,7 +158,8 @@ def get_keyword_details(keywords_list):
                         "キーワード": keyword,
                         "CSVファイル": f"{category}キーワード.csv",
                         "検索列": name_col,
-                        "一致": "○"
+                        "一致": "○",
+                        "正規化後": normalized_keyword
                     }
                     
                     # 他の列の情報も追加
@@ -145,6 +176,7 @@ def get_keyword_details(keywords_list):
                         "CSVファイル": f"{category}キーワード.csv",
                         "検索列": name_col,
                         "一致": "×",
+                        "正規化後": normalized_keyword,
                         "注意": "詳細情報が見つかりませんでした"
                     })
             else:
