@@ -497,6 +497,10 @@ if 'csv_data' in st.session_state:
                 # キーワード詳細情報をJSON形式で整形
                 keyword_info = json.dumps(keyword_details, ensure_ascii=False, indent=2)
                 
+                # デバッグ用にキーワード情報を保存
+                st.session_state[f'keyword_details_{selected_row_idx}'] = keyword_details
+                st.session_state[f'keyword_info_{selected_row_idx}'] = keyword_info
+                
                 logic_message = f"""質問: {current_question}
 
 使用キーワード:
@@ -599,6 +603,21 @@ if 'csv_data' in st.session_state:
             col1, col2 = st.columns([1, 3])
             with col1:
                 st.metric("スコア", f"{logic_json.get('score', 0)}/5")
+            
+            # デバッグ情報：キーワード詳細を表示
+            with st.expander("🔧 デバッグ: AIに送信されたキーワード情報", expanded=False):
+                # 元のキーワードリスト
+                st.write("**元のキーワード（CSVから取得）:**")
+                st.write(f"{', '.join(keywords) if keywords else 'なし'}")
+                
+                if f'keyword_details_{selected_row_idx}' in st.session_state:
+                    keyword_details = st.session_state[f'keyword_details_{selected_row_idx}']
+                    st.write("\n**キーワード詳細情報:**")
+                    for detail in keyword_details:
+                        st.write(f"- {detail}")
+                    
+                    st.write("\n**JSON形式（AIに送信された内容）:**")
+                    st.code(st.session_state[f'keyword_info_{selected_row_idx}'], language='json')
             
             improvements = logic_json.get('improvements', [])
             if improvements:
