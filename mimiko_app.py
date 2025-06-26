@@ -11,12 +11,18 @@ import io
 try:
     import google.genai as genai
     from google.genai import types
-    from google.genai.types import GenerateContentConfig, ThinkingConfig
+    try:
+        from google.genai.types import GenerateContentConfig, ThinkingConfig
+        HAS_THINKING_CONFIG = True
+    except ImportError:
+        # 古いバージョンの場合
+        HAS_THINKING_CONFIG = False
     NEW_SDK = True
 except ImportError:
     try:
         import google.generativeai as genai
         NEW_SDK = False
+        HAS_THINKING_CONFIG = False
         st.warning("古いライブラリを使用しています。pip install google-genai で新しいライブラリに更新してください。")
     except ImportError:
         st.error("Google GenAI ライブラリがインストールされていません。pip install google-genai を実行してください。")
@@ -68,8 +74,8 @@ else:
 # Vertex AI モデルオプション
 vertex_model_options = [
     "gemini-2.0-flash-002",
-    "gemini-2.5-flash-001",
-    "gemini-2.5-pro-001"
+    "gemini-2.5-flash",
+    "gemini-2.5-pro"
 ]
 
 # Load correction prompts
@@ -266,8 +272,9 @@ def call_gemini(prompt, user_message, model_name, project_id=None, location=None
         
         if NEW_SDK:
             if client:
-                # Gemini 2.5モデルの場合、ThinkingConfigを使用可能
-                if "2.5" in model:
+                # GenerateContentConfigが利用可能かチェック
+                if HAS_THINKING_CONFIG and "2.5" in model:
+                    # Gemini 2.5モデルの場合、ThinkingConfigを使用可能
                     config = GenerateContentConfig(
                         max_output_tokens=1000,
                         temperature=0.1,
@@ -276,8 +283,14 @@ def call_gemini(prompt, user_message, model_name, project_id=None, location=None
                             include_thoughts=False  # 推論過程は含めない
                         )
                     )
-                else:
+                elif HAS_THINKING_CONFIG:
                     config = GenerateContentConfig(
+                        max_output_tokens=1000,
+                        temperature=0.1,
+                    )
+                else:
+                    # 古いtypes.GenerateContentConfigを使用
+                    config = types.GenerateContentConfig(
                         max_output_tokens=1000,
                         temperature=0.1,
                     )
@@ -304,6 +317,9 @@ def call_gemini(prompt, user_message, model_name, project_id=None, location=None
             
     except Exception as e:
         st.error(f"Gemini API呼び出しエラー: {e}")
+        st.error(f"モデル名: {model_name}")
+        st.error(f"プロジェクトID: {project_id}")
+        st.error(f"ロケーション: {location}")
         import traceback
         st.error(traceback.format_exc())
         return None
