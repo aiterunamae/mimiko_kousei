@@ -44,7 +44,7 @@ if hasattr(st, "secrets"):
         # 新しい形式に対応
         vertex_ai_project_id = st.secrets["api"]["vertex_project"] if "api" in st.secrets and "vertex_project" in st.secrets["api"] else ""
         vertex_ai_location = st.secrets["api"]["vertex_location"] if "api" in st.secrets and "vertex_location" in st.secrets["api"] else "us-central1"
-        default_model = st.secrets.get("default_model", "gemini-2.0-flash-002")
+        default_model = st.secrets.get("default_model", "gemini-2.0-flash")
         
         # サービスアカウント情報
         gcp_service_account = dict(st.secrets["gcp_service_account"]) if "gcp_service_account" in st.secrets else None
@@ -52,7 +52,7 @@ if hasattr(st, "secrets"):
         st.error(f"Secretsの読み込みエラー: {e}")
         vertex_ai_project_id = ""
         vertex_ai_location = "us-central1"
-        default_model = "gemini-2.0-flash-002"
+        default_model = "gemini-2.0-flash"
         gcp_service_account = None
 else:
     # ローカル環境の場合
@@ -62,18 +62,18 @@ else:
         api_config = secrets.get("api", {})
         vertex_ai_project_id = api_config.get("vertex_project", "")
         vertex_ai_location = api_config.get("vertex_location", "us-central1")
-        default_model = secrets.get("default_model", "gemini-2.0-flash-002")
+        default_model = secrets.get("default_model", "gemini-2.0-flash")
         gcp_service_account = secrets.get("gcp_service_account", None)
     else:
         # 環境変数から取得
         vertex_ai_project_id = os.environ.get("VERTEX_AI_PROJECT_ID", "")
         vertex_ai_location = os.environ.get("VERTEX_AI_LOCATION", "us-central1")
-        default_model = os.environ.get("DEFAULT_MODEL", "gemini-2.0-flash-002")
+        default_model = os.environ.get("DEFAULT_MODEL", "gemini-2.0-flash")
         gcp_service_account = None
 
 # Vertex AI モデルオプション
 vertex_model_options = [
-    "gemini-2.0-flash-002",
+    "gemini-2.0-flash",
     "gemini-2.5-flash",
     "gemini-2.5-pro"
 ]
@@ -259,7 +259,7 @@ def setup_vertex_ai(model_name, project_id=None, location=None, service_account=
         return None, None
 
 # Function to call Gemini API  
-def call_gemini(prompt, user_message, model_name, project_id=None, location=None, service_account=None):
+def call_gemini(prompt, user_message, model_name, project_id=None, location=None, service_account=None, max_tokens=2000):
     """Gemini APIを呼び出す"""
     try:
         client, model = setup_vertex_ai(model_name, project_id, location, service_account)
@@ -276,7 +276,7 @@ def call_gemini(prompt, user_message, model_name, project_id=None, location=None
                 if HAS_THINKING_CONFIG and "2.5" in model:
                     # Gemini 2.5モデルの場合、ThinkingConfigを使用可能
                     config = GenerateContentConfig(
-                        max_output_tokens=1000,
+                        max_output_tokens=max_tokens,
                         temperature=0.1,
                         thinking_config=ThinkingConfig(
                             thinking_budget=1024,
@@ -285,13 +285,13 @@ def call_gemini(prompt, user_message, model_name, project_id=None, location=None
                     )
                 elif HAS_THINKING_CONFIG:
                     config = GenerateContentConfig(
-                        max_output_tokens=1000,
+                        max_output_tokens=max_tokens,
                         temperature=0.1,
                     )
                 else:
                     # 古いtypes.GenerateContentConfigを使用
                     config = types.GenerateContentConfig(
-                        max_output_tokens=1000,
+                        max_output_tokens=max_tokens,
                         temperature=0.1,
                     )
                 
@@ -360,7 +360,7 @@ def call_gemini(prompt, user_message, model_name, project_id=None, location=None
             response = model_obj.generate_content(
                 full_message,
                 generation_config=genai.types.GenerationConfig(
-                    max_output_tokens=1000,
+                    max_output_tokens=max_tokens,
                     temperature=0.1,
                 )
             )
@@ -396,12 +396,44 @@ def parse_json_response(response):
             if response.endswith("```"):
                 response = response[:-3]  # 末尾の ``` を除去
         
-        # Find JSON in the response
+        # JSONの開始と終了位置を探す
         start_idx = response.find('{')
         end_idx = response.rfind('}') + 1
+        
+        # JSONが切れている可能性をチェック
+        if start_idx >= 0:
+            # 開き括弧の数と閉じ括弧の数を数える
+            open_brackets = response.count('[')
+            close_brackets = response.count(']')
+            open_braces = response.count('{')
+            close_braces = response.count('}')
+            
+            # 切れている場合の処理
+            if open_brackets > close_brackets or open_braces > close_braces:
+                st.warning("JSONが途中で切れている可能性があります")
+                # 応答が切れている場合、デフォルト値を返す
+                return {
+                    "score": 3,  # 中間スコア
+                    "improvements": ["応答が途中で切れたため、完全な評価ができませんでした"]
+                }
+        
         if start_idx >= 0 and end_idx > start_idx:
             json_str = response[start_idx:end_idx]
-            return json.loads(json_str)
+            try:
+                return json.loads(json_str)
+            except json.JSONDecodeError as je:
+                st.warning(f"JSON解析エラー: {je}")
+                # 部分的なJSONを解析してみる
+                try:
+                    # 不完全なJSONを修復する試み
+                    if '"improvements": [' in json_str and not json_str.rstrip().endswith(']'):
+                        json_str = json_str.rstrip() + ']}' if not json_str.rstrip().endswith('}') else json_str
+                    return json.loads(json_str)
+                except:
+                    return {
+                        "score": 3,
+                        "improvements": ["JSON解析に失敗しました"]
+                    }
         else:
             st.warning("Could not find JSON in the response")
             with st.expander("生の応答を表示", expanded=True):
@@ -915,14 +947,15 @@ if 'csv_data' in st.session_state:
                             for i, improvement in enumerate(improvements):
                                 comprehensive_message += f"{i+1}. {improvement}\n"
                     
-                    # 総合校正実行
+                    # 総合校正実行（長い出力のためトークン数を増やす）
                     comprehensive_result = call_gemini(
                         comprehensive_prompt,
                         comprehensive_message,
                         selected_model,
                         current_project_id,
                         current_location,
-                        current_service_account
+                        current_service_account,
+                        max_tokens=4000  # 総合校正は長い文章を出力するため大きく設定
                     )
                     
                     if comprehensive_result:
