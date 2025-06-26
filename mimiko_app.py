@@ -829,8 +829,13 @@ if 'csv_data' in st.session_state:
             if improvements:
                 st.write("**改善点を選択してください:**")
                 for i, improvement in enumerate(improvements):
+                    # 改善点のテキストを安全に処理
+                    safe_improvement = str(improvement).replace('\n', ' ').replace('\r', ' ').strip()
+                    # 長すぎる場合は切り詰める
+                    display_text = safe_improvement[:200] + "..." if len(safe_improvement) > 200 else safe_improvement
+                    
                     is_selected = improvement in st.session_state[f'selected_tonmana_{selected_row_idx}']
-                    if st.checkbox(improvement, key=f"tonmana_cb_{selected_row_idx}_{i}", value=is_selected):
+                    if st.checkbox(display_text, key=f"tonmana_cb_{selected_row_idx}_{i}", value=is_selected, help=safe_improvement if len(safe_improvement) > 200 else None):
                         if improvement not in st.session_state[f'selected_tonmana_{selected_row_idx}']:
                             st.session_state[f'selected_tonmana_{selected_row_idx}'].append(improvement)
                     else:
@@ -856,8 +861,13 @@ if 'csv_data' in st.session_state:
             if improvements:
                 st.write("**改善点を選択してください:**")
                 for i, improvement in enumerate(improvements):
+                    # 改善点のテキストを安全に処理
+                    safe_improvement = str(improvement).replace('\n', ' ').replace('\r', ' ').strip()
+                    # 長すぎる場合は切り詰める
+                    display_text = safe_improvement[:200] + "..." if len(safe_improvement) > 200 else safe_improvement
+                    
                     is_selected = improvement in st.session_state[f'selected_japanese_{selected_row_idx}']
-                    if st.checkbox(improvement, key=f"japanese_cb_{selected_row_idx}_{i}", value=is_selected):
+                    if st.checkbox(display_text, key=f"japanese_cb_{selected_row_idx}_{i}", value=is_selected, help=safe_improvement if len(safe_improvement) > 200 else None):
                         if improvement not in st.session_state[f'selected_japanese_{selected_row_idx}']:
                             st.session_state[f'selected_japanese_{selected_row_idx}'].append(improvement)
                     else:
@@ -922,8 +932,13 @@ if 'csv_data' in st.session_state:
             if improvements:
                 st.write("**改善点を選択してください:**")
                 for i, improvement in enumerate(improvements):
+                    # 改善点のテキストを安全に処理
+                    safe_improvement = str(improvement).replace('\n', ' ').replace('\r', ' ').strip()
+                    # 長すぎる場合は切り詰める
+                    display_text = safe_improvement[:200] + "..." if len(safe_improvement) > 200 else safe_improvement
+                    
                     is_selected = improvement in st.session_state[f'selected_logic_{selected_row_idx}']
-                    if st.checkbox(improvement, key=f"logic_cb_{selected_row_idx}_{i}", value=is_selected):
+                    if st.checkbox(display_text, key=f"logic_cb_{selected_row_idx}_{i}", value=is_selected, help=safe_improvement if len(safe_improvement) > 200 else None):
                         if improvement not in st.session_state[f'selected_logic_{selected_row_idx}']:
                             st.session_state[f'selected_logic_{selected_row_idx}'].append(improvement)
                     else:
