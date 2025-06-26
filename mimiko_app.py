@@ -238,150 +238,114 @@ with st.expander("⚙️ 設定", expanded=not vertex_ai_project_id):
 # Input section
 st.header("入力")
 
-# 入力モード選択
-input_mode = st.radio(
-    "入力方法を選択",
-    ["手動入力", "CSV一括処理"],
-    key="input_mode"
-)
+st.info("生成アプリで出力されたCSVファイルをアップロードしてください")
 
-if input_mode == "手動入力":
-    user_question = st.text_area("ユーザーからの質問", height=100)
-    
-    # キーワードカテゴリ選択（最大4つまで）
-    st.subheader("使用されたキーワードカテゴリ")
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        category1 = st.selectbox("カテゴリ1", ["なし", "ハウス", "サイン", "天体", "エレメント", "MP軸", "タロット"], key="cat1")
-        if category1 != "なし":
-            keyword1 = st.text_input("キーワード1", placeholder="例: 第1ハウス", key="kw1")
-        else:
-            keyword1 = ""
-    
-    with col2:
-        category2 = st.selectbox("カテゴリ2", ["なし", "ハウス", "サイン", "天体", "エレメント", "MP軸", "タロット"], key="cat2")
-        if category2 != "なし":
-            keyword2 = st.text_input("キーワード2", placeholder="例: 牡羊座", key="kw2")
-        else:
-            keyword2 = ""
-    
-    col3, col4 = st.columns(2)
-    
-    with col3:
-        category3 = st.selectbox("カテゴリ3", ["なし", "ハウス", "サイン", "天体", "エレメント", "MP軸", "タロット"], key="cat3")
-        if category3 != "なし":
-            keyword3 = st.text_input("キーワード3", placeholder="例: 太陽", key="kw3")
-        else:
-            keyword3 = ""
-    
-    with col4:
-        category4 = st.selectbox("カテゴリ4", ["なし", "ハウス", "サイン", "天体", "エレメント", "MP軸", "タロット"], key="cat4")
-        if category4 != "なし":
-            keyword4 = st.text_input("キーワード4", placeholder="例: 火", key="kw4")
-        else:
-            keyword4 = ""
-    
-    ai_answer = st.text_area("AI占い師の回答", height=150)
-    
-else:  # CSV一括処理モード
-    st.info("生成アプリで出力されたCSVファイルをアップロードしてください")
-    
-    uploaded_file = st.file_uploader("CSVファイルを選択", type=['csv'])
-    
-    if uploaded_file is not None:
-        try:
-            # CSVファイルを読み込み
-            df = pd.read_csv(uploaded_file, encoding='utf-8-sig')
-            
-            # 必要な列の存在確認
-            required_columns = ["id", "質問", "回答"]
-            if not all(col in df.columns for col in required_columns):
-                st.error(f"必須列が不足しています: {required_columns}")
-            else:
-                # キーワード列の検出（動的に対応）
-                keyword_columns = []
-                for col in df.columns:
-                    # カテゴリ名で終わる列を検出（例: ハウス1, サイン2, など）
-                    if any(col.endswith(str(i)) for i in range(1, 5)):
-                        for cat in ["ハウス", "サイン", "天体", "エレメント", "MP軸", "タロット"]:
-                            if col.startswith(cat):
-                                keyword_columns.append(col)
-                                break
-                
-                st.success(f"✅ {len(df)}件のデータを読み込みました")
-                st.write(f"検出されたキーワード列: {keyword_columns}")
-                
-                # プレビュー表示
-                with st.expander("データプレビュー", expanded=False):
-                    st.dataframe(df.head())
-                
-                # セッション状態に保存
-                if 'csv_data' not in st.session_state:
-                    st.session_state.csv_data = df
-                    st.session_state.keyword_columns = keyword_columns
-                
-        except Exception as e:
-            st.error(f"CSVファイルの読み込みエラー: {e}")
+uploaded_file = st.file_uploader("CSVファイルを選択", type=['csv'])
 
-# Initialize session state
-if 'corrections' not in st.session_state:
-    st.session_state.corrections = {}
-if 'tonmana_problems' not in st.session_state:
-    st.session_state.tonmana_problems = []
-if 'japanese_improvements' not in st.session_state:
-    st.session_state.japanese_improvements = []
-if 'logic_improvements' not in st.session_state:
-    st.session_state.logic_improvements = []
-if 'correction_done' not in st.session_state:
-    st.session_state.correction_done = False
-if 'user_input' not in st.session_state:
-    st.session_state.user_input = {"question": "", "keywords": [], "answer": ""}
-
-# Process button
-if input_mode == "手動入力":
-    if st.button("校正を実行") or st.session_state.correction_done:
-        if not user_question or not ai_answer:
-            st.error("質問と回答を入力してください")
+if uploaded_file is not None:
+    try:
+        # CSVファイルを読み込み
+        df = pd.read_csv(uploaded_file, encoding='utf-8-sig')
+        
+        # 必要な列の存在確認
+        required_columns = ["id", "質問", "回答"]
+        if not all(col in df.columns for col in required_columns):
+            st.error(f"必須列が不足しています: {required_columns}")
         else:
-            # キーワード情報の整理
-            keywords = []
-            if category1 != "なし" and keyword1:
-                keywords.append(f"{category1}: {keyword1}")
-            if category2 != "なし" and keyword2:
-                keywords.append(f"{category2}: {keyword2}")
-            if category3 != "なし" and keyword3:
-                keywords.append(f"{category3}: {keyword3}")
-            if category4 != "なし" and keyword4:
-                keywords.append(f"{category4}: {keyword4}")
+            # キーワード列の検出（動的に対応）
+            keyword_columns = []
+            for col in df.columns:
+                # カテゴリ名で終わる列を検出（例: ハウス1, サイン2, など）
+                if any(col.endswith(str(i)) for i in range(1, 5)):
+                    for cat in ["ハウス", "サイン", "天体", "エレメント", "MP軸", "タロット"]:
+                        if col.startswith(cat):
+                            keyword_columns.append(col)
+                            break
             
-            # Save user input to session state
-            st.session_state.user_input = {
-                "question": user_question,
-                "keywords": keywords,
-                "answer": ai_answer
-            }
+            st.success(f"✅ {len(df)}件のデータを読み込みました")
+            st.write(f"検出されたキーワード列: {keyword_columns}")
             
-            # Set correction_done flag to true
-            st.session_state.correction_done = True
+            # プレビュー表示
+            with st.expander("データプレビュー", expanded=False):
+                st.dataframe(df.head())
             
-            # 設定の準備
-            current_project_id = project_id_input
-            current_location = location_input
-            current_service_account = gcp_service_account
+            # セッション状態に保存
+            st.session_state.csv_data = df
+            st.session_state.keyword_columns = keyword_columns
+            
+    except Exception as e:
+        st.error(f"CSVファイルの読み込みエラー: {e}")
 
-            # Only call APIs if not already done
-        if 'tonmana_result' not in st.session_state:
+# CSV処理
+if 'csv_data' in st.session_state:
+    df = st.session_state.csv_data
+    keyword_columns = st.session_state.keyword_columns
+    
+    # 行選択
+    st.subheader("📝 データ選択")
+    
+    # 行番号選択（1から始まる表示）
+    row_options = [f"ID: {row['id']} - {row['質問'][:50]}..." for _, row in df.iterrows()]
+    selected_row_idx = st.selectbox(
+        "校正したいデータを選択してください",
+        range(len(df)),
+        format_func=lambda x: row_options[x],
+        key="selected_row"
+    )
+    
+    # 選択された行のデータ
+    selected_row = df.iloc[selected_row_idx]
+    
+    # プレビュー表示
+    with st.expander("選択されたデータの詳細", expanded=True):
+        st.write(f"**ID:** {selected_row['id']}")
+        st.write(f"**質問:** {selected_row['質問']}")
+        
+        # キーワード表示
+        keywords_display = []
+        for col in keyword_columns:
+            if pd.notna(selected_row[col]):
+                category = ''.join([c for c in col if not c.isdigit()])
+                keywords_display.append(f"{category}: {selected_row[col]}")
+        if keywords_display:
+            st.write(f"**キーワード:** {', '.join(keywords_display)}")
+        
+        st.write(f"**回答:**")
+        st.text_area("", value=selected_row['回答'], height=150, disabled=True)
+    
+    # 個別校正実行ボタン
+    if st.button("🔍 この回答を校正する") or f'correction_done_{selected_row_idx}' in st.session_state:
+        # セッション状態の初期化
+        if f'corrections_{selected_row_idx}' not in st.session_state:
+            st.session_state[f'corrections_{selected_row_idx}'] = {}
+        
+        # 設定の準備
+        current_project_id = project_id_input
+        current_location = location_input
+        current_service_account = gcp_service_account
+        
+        # 質問と回答を取得
+        current_question = selected_row['質問']
+        current_answer = selected_row['回答']
+        
+        # キーワードを整理
+        keywords = []
+        for col in keyword_columns:
+            if pd.notna(selected_row[col]):
+                category = ''.join([c for c in col if not c.isdigit()])
+                keywords.append(f"{category}: {selected_row[col]}")
+        
+        # 1. トンマナ校正
+        if f'tonmana_result_{selected_row_idx}' not in st.session_state:
             with st.spinner("トンマナ校正中..."):
-                # 1. トンマナ校正
                 tonmana_message = f"""##QUESTION##
-{user_question}
+{current_question}
 
 ##KEYWORDS##
 {', '.join(keywords) if keywords else 'なし'}
 
 ##ANSWER_CAND##
-{ai_answer}
+{current_answer}
 """
                 tonmana_result = call_gemini(
                     tonmana_prompt, 
@@ -391,51 +355,48 @@ if input_mode == "手動入力":
                     current_location,
                     current_service_account
                 )
+                
                 if tonmana_result:
                     tonmana_json = parse_json_response(tonmana_result)
                     if tonmana_json:
-                        st.session_state.tonmana_result = tonmana_result
-                        st.session_state.tonmana_json = tonmana_json
+                        st.session_state[f'tonmana_result_{selected_row_idx}'] = tonmana_result
+                        st.session_state[f'tonmana_json_{selected_row_idx}'] = tonmana_json
                         
-                        # Store in session state
-                        # プロンプトではimprovementsという名前だが、内部的にproblemsとして扱う
                         problems = tonmana_json.get('improvements', tonmana_json.get('problems', []))
-                        st.session_state.corrections["tonmana"] = {
-                            "score": tonmana_json.get('style_score', 'N/A'),
-                            "comment": tonmana_json.get('comment', 'N/A'),
-                            "problems": problems
+                        st.session_state[f'corrections_{selected_row_idx}']['tonmana'] = {
+                            'score': tonmana_json.get('style_score', 0),
+                            'problems': problems
                         }
         
-        if 'japanese_result' not in st.session_state:
+        # 2. 日本語校正
+        if f'japanese_result_{selected_row_idx}' not in st.session_state:
             with st.spinner("日本語校正中..."):
-                # 2. 日本語校正
-                japanese_message = ai_answer
                 japanese_result = call_gemini(
                     japanese_prompt,
-                    japanese_message,
+                    current_answer,
                     selected_model,
                     current_project_id,
                     current_location,
                     current_service_account
                 )
+                
                 if japanese_result:
                     japanese_json = parse_json_response(japanese_result)
                     if japanese_json:
-                        st.session_state.japanese_result = japanese_result
-                        st.session_state.japanese_json = japanese_json
+                        st.session_state[f'japanese_result_{selected_row_idx}'] = japanese_result
+                        st.session_state[f'japanese_json_{selected_row_idx}'] = japanese_json
                         
-                        # Store in session state
-                        st.session_state.corrections["japanese"] = {
-                            "score": japanese_json.get('score', 'N/A'),
-                            "improvements": japanese_json.get('improvements', [])
+                        st.session_state[f'corrections_{selected_row_idx}']['japanese'] = {
+                            'score': japanese_json.get('score', 0),
+                            'improvements': japanese_json.get('improvements', [])
                         }
         
-        if 'logic_result' not in st.session_state and logic_prompt.strip():
+        # 3. ロジック校正
+        if f'logic_result_{selected_row_idx}' not in st.session_state:
             with st.spinner("ロジック校正中..."):
-                # 3. ロジック校正
-                logic_message = f"""質問: {user_question}
+                logic_message = f"""質問: {current_question}
 使用キーワード: {', '.join(keywords) if keywords else 'なし'}
-回答: {ai_answer}
+回答: {current_answer}
 """
                 logic_result = call_gemini(
                     logic_prompt,
@@ -445,199 +406,174 @@ if input_mode == "手動入力":
                     current_location,
                     current_service_account
                 )
+                
                 if logic_result:
                     logic_json = parse_json_response(logic_result)
                     if logic_json:
-                        st.session_state.logic_result = logic_result
-                        st.session_state.logic_json = logic_json
+                        st.session_state[f'logic_result_{selected_row_idx}'] = logic_result
+                        st.session_state[f'logic_json_{selected_row_idx}'] = logic_json
                         
-                        # Store in session state
-                        st.session_state.corrections["logic"] = {
-                            "score": logic_json.get('score', 'N/A'),
-                            "improvements": logic_json.get('improvements', [])
+                        st.session_state[f'corrections_{selected_row_idx}']['logic'] = {
+                            'score': logic_json.get('score', 0),
+                            'improvements': logic_json.get('improvements', [])
                         }
         
-        # Calculate total score
+        # 校正完了フラグ
+        st.session_state[f'correction_done_{selected_row_idx}'] = True
+        
+        # 結果表示
+        st.header("📊 校正結果")
+        
+        # 総合スコア計算
         total_score = 0
-        max_score = 15
-        valid_scores = 0
+        if f'corrections_{selected_row_idx}' in st.session_state:
+            corrections = st.session_state[f'corrections_{selected_row_idx}']
+            for correction_type in ['tonmana', 'japanese', 'logic']:
+                if correction_type in corrections:
+                    total_score += corrections[correction_type].get('score', 0)
         
-        for correction_type in ["tonmana", "japanese", "logic"]:
-            if correction_type in st.session_state.corrections:
-                score = st.session_state.corrections[correction_type]["score"]
-                if isinstance(score, (int, float)) and score != 'N/A':
-                    total_score += score
-                    valid_scores += 1
+        st.success(f"**総合スコア: {total_score}/15点**")
         
-        # Display total score
-        if valid_scores > 0:
-            st.header(f"総合スコア: {total_score}/{max_score}点")
+        # 改善点選択用のセッション状態初期化
+        if f'selected_tonmana_{selected_row_idx}' not in st.session_state:
+            st.session_state[f'selected_tonmana_{selected_row_idx}'] = []
+        if f'selected_japanese_{selected_row_idx}' not in st.session_state:
+            st.session_state[f'selected_japanese_{selected_row_idx}'] = []
+        if f'selected_logic_{selected_row_idx}' not in st.session_state:
+            st.session_state[f'selected_logic_{selected_row_idx}'] = []
         
-        # Display results
         # 1. トンマナ校正結果
-        if 'tonmana_json' in st.session_state:
-            st.subheader("トンマナ校正結果")
-            tonmana_json = st.session_state.tonmana_json
-            st.write(f"スコア: {tonmana_json.get('style_score', 'N/A')}/5")
-            st.write(f"コメント: {tonmana_json.get('comment', 'N/A')}")
+        if f'tonmana_json_{selected_row_idx}' in st.session_state:
+            st.subheader("🎨 トンマナ校正結果")
+            tonmana_json = st.session_state[f'tonmana_json_{selected_row_idx}']
+            col1, col2 = st.columns([1, 3])
+            with col1:
+                st.metric("スコア", f"{tonmana_json.get('style_score', 0)}/5")
             
             problems = tonmana_json.get('improvements', tonmana_json.get('problems', []))
             if problems:
-                st.write("改善点:")
+                st.write("**改善点を選択してください:**")
                 for i, problem in enumerate(problems):
-                    # Create a unique key for each checkbox
-                    checkbox_key = f"tonmana_cb_{i}"
-                    
-                    # Check if the problem is in the selected problems list
-                    is_selected = problem in st.session_state.tonmana_problems
-                    
-                    # Display checkbox
-                    checked = st.checkbox(problem, key=checkbox_key, value=is_selected)
-                    
-                    # Update selected problems list based on checkbox state
-                    if checked and problem not in st.session_state.tonmana_problems:
-                        st.session_state.tonmana_problems.append(problem)
-                    elif not checked and problem in st.session_state.tonmana_problems:
-                        st.session_state.tonmana_problems.remove(problem)
+                    is_selected = problem in st.session_state[f'selected_tonmana_{selected_row_idx}']
+                    if st.checkbox(problem, key=f"tonmana_cb_{selected_row_idx}_{i}", value=is_selected):
+                        if problem not in st.session_state[f'selected_tonmana_{selected_row_idx}']:
+                            st.session_state[f'selected_tonmana_{selected_row_idx}'].append(problem)
+                    else:
+                        if problem in st.session_state[f'selected_tonmana_{selected_row_idx}']:
+                            st.session_state[f'selected_tonmana_{selected_row_idx}'].remove(problem)
             else:
-                st.write("改善点はありません")
+                st.info("改善点はありません")
         
         # 2. 日本語校正結果
-        if 'japanese_json' in st.session_state:
-            st.subheader("日本語校正結果")
-            japanese_json = st.session_state.japanese_json
-            st.write(f"スコア: {japanese_json.get('score', 'N/A')}/5")
+        if f'japanese_json_{selected_row_idx}' in st.session_state:
+            st.subheader("📝 日本語校正結果")
+            japanese_json = st.session_state[f'japanese_json_{selected_row_idx}']
+            col1, col2 = st.columns([1, 3])
+            with col1:
+                st.metric("スコア", f"{japanese_json.get('score', 0)}/5")
             
             improvements = japanese_json.get('improvements', [])
             if improvements:
-                st.write("改善点:")
+                st.write("**改善点を選択してください:**")
                 for i, improvement in enumerate(improvements):
-                    # Create a unique key for each checkbox
-                    checkbox_key = f"japanese_cb_{i}"
-                    
-                    # Check if the improvement is in the selected improvements list
-                    is_selected = improvement in st.session_state.japanese_improvements
-                    
-                    # Display checkbox
-                    checked = st.checkbox(improvement, key=checkbox_key, value=is_selected)
-                    
-                    # Update selected improvements list based on checkbox state
-                    if checked and improvement not in st.session_state.japanese_improvements:
-                        st.session_state.japanese_improvements.append(improvement)
-                    elif not checked and improvement in st.session_state.japanese_improvements:
-                        st.session_state.japanese_improvements.remove(improvement)
+                    is_selected = improvement in st.session_state[f'selected_japanese_{selected_row_idx}']
+                    if st.checkbox(improvement, key=f"japanese_cb_{selected_row_idx}_{i}", value=is_selected):
+                        if improvement not in st.session_state[f'selected_japanese_{selected_row_idx}']:
+                            st.session_state[f'selected_japanese_{selected_row_idx}'].append(improvement)
+                    else:
+                        if improvement in st.session_state[f'selected_japanese_{selected_row_idx}']:
+                            st.session_state[f'selected_japanese_{selected_row_idx}'].remove(improvement)
             else:
-                st.write("改善点はありません")
+                st.info("改善点はありません")
         
         # 3. ロジック校正結果
-        if 'logic_json' in st.session_state:
-            st.subheader("ロジック校正結果")
-            logic_json = st.session_state.logic_json
-            st.write(f"スコア: {logic_json.get('score', 'N/A')}/5")
+        if f'logic_json_{selected_row_idx}' in st.session_state:
+            st.subheader("🔍 ロジック校正結果")
+            logic_json = st.session_state[f'logic_json_{selected_row_idx}']
+            col1, col2 = st.columns([1, 3])
+            with col1:
+                st.metric("スコア", f"{logic_json.get('score', 0)}/5")
             
             improvements = logic_json.get('improvements', [])
             if improvements:
-                st.write("改善点:")
+                st.write("**改善点を選択してください:**")
                 for i, improvement in enumerate(improvements):
-                    # Create a unique key for each checkbox
-                    checkbox_key = f"logic_cb_{i}"
-                    
-                    # Check if the improvement is in the selected improvements list
-                    is_selected = improvement in st.session_state.logic_improvements
-                    
-                    # Display checkbox
-                    checked = st.checkbox(improvement, key=checkbox_key, value=is_selected)
-                    
-                    # Update selected improvements list based on checkbox state
-                    if checked and improvement not in st.session_state.logic_improvements:
-                        st.session_state.logic_improvements.append(improvement)
-                    elif not checked and improvement in st.session_state.logic_improvements:
-                        st.session_state.logic_improvements.remove(improvement)
+                    is_selected = improvement in st.session_state[f'selected_logic_{selected_row_idx}']
+                    if st.checkbox(improvement, key=f"logic_cb_{selected_row_idx}_{i}", value=is_selected):
+                        if improvement not in st.session_state[f'selected_logic_{selected_row_idx}']:
+                            st.session_state[f'selected_logic_{selected_row_idx}'].append(improvement)
+                    else:
+                        if improvement in st.session_state[f'selected_logic_{selected_row_idx}']:
+                            st.session_state[f'selected_logic_{selected_row_idx}'].remove(improvement)
             else:
-                st.write("改善点はありません")
-        elif logic_prompt.strip():
-            st.warning("ロジック校正プロンプトが空です。この校正はスキップされます。")
+                st.info("改善点はありません")
         
-        # Show button to proceed to comprehensive correction
-        st.session_state.show_comprehensive_button = True
-
-# Reset button
-if st.button("リセット"):
-    # Clear session state
-    for key in list(st.session_state.keys()):
-        del st.session_state[key]
-    # Rerun the app
-    st.rerun()
-
-# Comprehensive correction button
-if st.session_state.get("show_comprehensive_button", False):
-    st.header("総合校正")
-    if st.button("選択した改善点で総合校正を実行") or 'comprehensive_result' in st.session_state:
-        if 'comprehensive_result' not in st.session_state:
-            with st.spinner("総合校正中..."):
-                # 設定の準備（comprehensive correction用）
-                current_project_id = project_id_input
-                current_location = location_input
-                current_service_account = gcp_service_account
-                # Prepare selected improvements
-                selected_improvements = {
-                    "トンマナ校正": st.session_state.get("tonmana_problems", []),
-                    "日本語校正": st.session_state.get("japanese_improvements", []),
-                    "ロジック校正": st.session_state.get("logic_improvements", [])
-                }
-                
-                # Prepare scores
-                scores = {}
-                if "tonmana" in st.session_state.corrections:
-                    scores["トンマナ校正"] = st.session_state.corrections["tonmana"]["score"]
-                if "japanese" in st.session_state.corrections:
-                    scores["日本語校正"] = st.session_state.corrections["japanese"]["score"]
-                if "logic" in st.session_state.corrections:
-                    scores["ロジック校正"] = st.session_state.corrections["logic"]["score"]
-                
-                # Create message for comprehensive correction
-                comprehensive_message = f"""AI占い師の回答:
-{st.session_state.user_input["answer"]}
+        # 総合校正ボタン
+        st.header("✨ 総合校正")
+        if st.button("選択した改善点で総合校正を実行") or f'comprehensive_result_{selected_row_idx}' in st.session_state:
+            if f'comprehensive_result_{selected_row_idx}' not in st.session_state:
+                with st.spinner("総合校正中..."):
+                    # 選択された改善点を整理
+                    selected_improvements = {
+                        "トンマナ校正": st.session_state.get(f'selected_tonmana_{selected_row_idx}', []),
+                        "日本語校正": st.session_state.get(f'selected_japanese_{selected_row_idx}', []),
+                        "ロジック校正": st.session_state.get(f'selected_logic_{selected_row_idx}', [])
+                    }
+                    
+                    # スコアを整理
+                    scores = {}
+                    if f'corrections_{selected_row_idx}' in st.session_state:
+                        corrections = st.session_state[f'corrections_{selected_row_idx}']
+                        if 'tonmana' in corrections:
+                            scores["トンマナ校正"] = corrections['tonmana'].get('score', 0)
+                        if 'japanese' in corrections:
+                            scores["日本語校正"] = corrections['japanese'].get('score', 0)
+                        if 'logic' in corrections:
+                            scores["ロジック校正"] = corrections['logic'].get('score', 0)
+                    
+                    # 総合校正メッセージ作成
+                    comprehensive_message = f"""AI占い師の回答:
+{current_answer}
 
 使用されたキーワード:
-{', '.join(st.session_state.user_input["keywords"]) if st.session_state.user_input["keywords"] else 'なし'}
+{', '.join(keywords) if keywords else 'なし'}
 
 各校正AIの採点結果:
 """
-                for correction_type, score in scores.items():
-                    comprehensive_message += f"{correction_type}: {score}/5\n"
-                
-                comprehensive_message += "\n選択された改善点:\n"
-                for correction_type, improvements in selected_improvements.items():
-                    if improvements:
-                        comprehensive_message += f"\n{correction_type}:\n"
-                        for i, improvement in enumerate(improvements):
-                            comprehensive_message += f"{i+1}. {improvement}\n"
-                
-                # Call Gemini for comprehensive correction
-                comprehensive_result = call_gemini(
-                    comprehensive_prompt,
-                    comprehensive_message,
-                    selected_model,
-                    current_project_id,
-                    current_location,
-                    current_service_account
-                )
-                if comprehensive_result:
-                    # Save the result to session state
-                    st.session_state.comprehensive_result = comprehensive_result
-        
-        # Display comprehensive correction result
-        if 'comprehensive_result' in st.session_state:
-            st.subheader("総合校正結果")
-            st.write(st.session_state.comprehensive_result)
-
-# CSV一括処理モード
-elif input_mode == "CSV一括処理" and 'csv_data' in st.session_state:
-    if st.button("一括校正を実行"):
-        df = st.session_state.csv_data
-        keyword_columns = st.session_state.keyword_columns
-        
+                    for correction_type, score in scores.items():
+                        comprehensive_message += f"{correction_type}: {score}/5\n"
+                    
+                    comprehensive_message += "\n選択された改善点:\n"
+                    for correction_type, improvements in selected_improvements.items():
+                        if improvements:
+                            comprehensive_message += f"\n{correction_type}:\n"
+                            for i, improvement in enumerate(improvements):
+                                comprehensive_message += f"{i+1}. {improvement}\n"
+                    
+                    # 総合校正実行
+                    comprehensive_result = call_gemini(
+                        comprehensive_prompt,
+                        comprehensive_message,
+                        selected_model,
+                        current_project_id,
+                        current_location,
+                        current_service_account
+                    )
+                    
+                    if comprehensive_result:
+                        st.session_state[f'comprehensive_result_{selected_row_idx}'] = comprehensive_result
+            
+            # 総合校正結果表示
+            if f'comprehensive_result_{selected_row_idx}' in st.session_state:
+                st.subheader("総合校正結果")
+                st.write(st.session_state[f'comprehensive_result_{selected_row_idx}'])
+    
+    # 区切り線
+    st.divider()
+    
+    # 一括処理ボタン
+    st.header("🚀 一括処理")
+    if st.button("全データを一括校正"):
         # 結果を保存するための列を追加
         df['トンマナスコア'] = 0
         df['日本語スコア'] = 0
