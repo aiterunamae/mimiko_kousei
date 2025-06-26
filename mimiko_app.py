@@ -3,6 +3,9 @@ import json
 import toml
 import os
 from pathlib import Path
+from datetime import datetime
+import pandas as pd
+import io
 
 # Google GenAI SDKのインポート
 try:
@@ -32,8 +35,6 @@ except ImportError:
 if hasattr(st, "secrets"):
     try:
         # 新しい形式に対応
-        google_api_key = st.secrets["api"]["gemini_api_key"] if "api" in st.secrets and "gemini_api_key" in st.secrets["api"] else ""
-        use_vertex_ai = st.secrets["api"]["use_vertex_ai"] if "api" in st.secrets and "use_vertex_ai" in st.secrets["api"] else False
         vertex_ai_project_id = st.secrets["api"]["vertex_project"] if "api" in st.secrets and "vertex_project" in st.secrets["api"] else ""
         vertex_ai_location = st.secrets["api"]["vertex_location"] if "api" in st.secrets and "vertex_location" in st.secrets["api"] else "us-central1"
         default_model = st.secrets.get("default_model", "gemini-2.0-flash-exp")
@@ -42,8 +43,6 @@ if hasattr(st, "secrets"):
         gcp_service_account = dict(st.secrets["gcp_service_account"]) if "gcp_service_account" in st.secrets else None
     except Exception as e:
         st.error(f"Secretsの読み込みエラー: {e}")
-        google_api_key = ""
-        use_vertex_ai = False
         vertex_ai_project_id = ""
         vertex_ai_location = "us-central1"
         default_model = "gemini-2.0-flash-exp"
@@ -54,29 +53,18 @@ else:
     if secrets_path.exists():
         secrets = toml.load(secrets_path)
         api_config = secrets.get("api", {})
-        google_api_key = api_config.get("gemini_api_key", "")
-        use_vertex_ai = api_config.get("use_vertex_ai", False)
         vertex_ai_project_id = api_config.get("vertex_project", "")
         vertex_ai_location = api_config.get("vertex_location", "us-central1")
         default_model = secrets.get("default_model", "gemini-2.0-flash-exp")
         gcp_service_account = secrets.get("gcp_service_account", None)
     else:
         # 環境変数から取得
-        google_api_key = os.environ.get("GOOGLE_API_KEY", "")
-        use_vertex_ai = os.environ.get("USE_VERTEX_AI", "false").lower() == "true"
         vertex_ai_project_id = os.environ.get("VERTEX_AI_PROJECT_ID", "")
         vertex_ai_location = os.environ.get("VERTEX_AI_LOCATION", "us-central1")
         default_model = os.environ.get("DEFAULT_MODEL", "gemini-2.0-flash-exp")
         gcp_service_account = None
 
-# AI プロバイダーオプション
-default_model_options = [
-    "gemini-2.0-flash-exp",
-    "gemini-1.5-flash",
-    "gemini-1.5-pro"
-]
-
-# Vertex AI プロバイダーオプション
+# Vertex AI モデルオプション
 vertex_model_options = [
     "gemini-2.0-flash-exp",
     "gemini-1.5-flash-002",
@@ -99,75 +87,63 @@ except Exception as e:
     st.error(f"Error loading prompts: {e}")
     st.stop()
 
-# Google AI/Vertex AI設定関数
-def setup_ai_provider(provider, model_name, api_key=None, project_id=None, location=None, service_account=None):
-    """AI プロバイダーを設定する"""
+# Vertex AI設定関数
+def setup_vertex_ai(model_name, project_id=None, location=None, service_account=None):
+    """Vertex AI を設定する"""
     try:
-        if provider == "Google AI":
-            if not api_key:
-                st.error("Google API Keyが設定されていません")
-                return None, None
-                
-            if NEW_SDK:
-                client = genai.Client(api_key=api_key)
-            else:
-                genai.configure(api_key=api_key)
-                client = None
-            return client, model_name
-            
-        elif provider == "Vertex AI" and VERTEX_AI_AVAILABLE:
-            if not project_id:
-                st.error("Project IDが設定されていません")
-                return None, None
-            
-            # サービスアカウント認証を使用
-            if service_account and VERTEX_AI_AVAILABLE:
-                try:
-                    from google.oauth2 import service_account as sa
-                    credentials = sa.Credentials.from_service_account_info(
-                        service_account,
-                        scopes=['https://www.googleapis.com/auth/cloud-platform']
-                    )
-                except Exception as e:
-                    st.error(f"サービスアカウント認証エラー: {e}")
-                    credentials = None
-            else:
-                credentials = None
-                
-            if NEW_SDK:
-                if credentials:
-                    # 認証情報を使用
-                    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = ''  # Clear any existing
-                    client = genai.Client(
-                        vertexai=True,
-                        project=project_id,
-                        location=location,
-                        credentials=credentials
-                    )
-                else:
-                    client = genai.Client(
-                        vertexai=True,
-                        project=project_id,
-                        location=location
-                    )
-            else:
-                genai.configure(project=project_id, location=location)
-                client = None
-            return client, model_name
-        else:
-            st.error(f"プロバイダー {provider} はサポートされていません")
+        if not VERTEX_AI_AVAILABLE:
+            st.error("Vertex AI ライブラリがインストールされていません")
             return None, None
+            
+        if not project_id:
+            st.error("Project IDが設定されていません")
+            return None, None
+        
+        # サービスアカウント認証を使用
+        if service_account:
+            try:
+                from google.oauth2 import service_account as sa
+                credentials = sa.Credentials.from_service_account_info(
+                    service_account,
+                    scopes=['https://www.googleapis.com/auth/cloud-platform']
+                )
+            except Exception as e:
+                st.error(f"サービスアカウント認証エラー: {e}")
+                credentials = None
+        else:
+            credentials = None
+            
+        if NEW_SDK:
+            if credentials:
+                # 認証情報を使用
+                os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = ''  # Clear any existing
+                client = genai.Client(
+                    vertexai=True,
+                    project=project_id,
+                    location=location,
+                    credentials=credentials
+                )
+            else:
+                client = genai.Client(
+                    vertexai=True,
+                    project=project_id,
+                    location=location
+                )
+        else:
+            genai.configure(project=project_id, location=location)
+            client = None
+        return client, model_name
     except Exception as e:
-        st.error(f"AI プロバイダーの設定に失敗しました: {e}")
+        st.error(f"Vertex AI の設定に失敗しました: {e}")
         import traceback
         st.error(traceback.format_exc())
         return None, None
 
-# Function to call Gemini API
-def call_gemini(prompt, user_message, provider, model_name, api_key=None, project_id=None, location=None, service_account=None):
+# Function to call Gemini API  
+def call_gemini(prompt, user_message, model_name, project_id=None, location=None, service_account=None):
     """Gemini APIを呼び出す"""
     try:
-        client, model = setup_ai_provider(provider, model_name, api_key, project_id, location, service_account)
+        client, model = setup_vertex_ai(model_name, project_id, location, service_account)
         
         if client is None and model is None:
             return None
@@ -227,112 +203,126 @@ def parse_json_response(response):
 st.title("mimiko校正システム")
 
 # Initialize variables with default values
-api_key_input = google_api_key
 project_id_input = vertex_ai_project_id
 location_input = vertex_ai_location
 
-# APIキーが設定されていない場合の警告
-if not google_api_key and not vertex_ai_project_id:
-    st.warning("⚠️ APIキーが設定されていません。設定セクションでGoogle API KeyまたはVertex AI Project IDを入力してください。")
-    st.info("Google AI Studioでキーを取得: https://makersuite.google.com/app/apikey")
-    
-    # デバッグ情報を表示
-    with st.expander("🐛 デバッグ情報", expanded=False):
-        st.write("Streamlit Secrets available:", hasattr(st, "secrets"))
-        if hasattr(st, "secrets"):
-            st.write("Secrets keys:", list(st.secrets.keys()) if hasattr(st.secrets, "keys") else "No keys method")
-            try:
-                st.write("google_api_key exists:", "google_api_key" in st.secrets)
-                st.write("google_api_key length:", len(st.secrets.get("google_api_key", "")) if "google_api_key" in st.secrets else 0)
-            except Exception as e:
-                st.write("Error checking secrets:", str(e))
+# Project IDが設定されていない場合の警告
+if not vertex_ai_project_id:
+    st.warning("⚠️ Vertex AI Project IDが設定されていません。設定セクションで入力してください。")
 
 # Settings section
-with st.expander("⚙️ 設定", expanded=not google_api_key and not vertex_ai_project_id):
+with st.expander("⚙️ 設定", expanded=not vertex_ai_project_id):
     col1, col2 = st.columns(2)
     
     with col1:
-        # プロバイダー選択（use_vertex_aiの設定に基づいてデフォルトを選択）
-        default_provider = "Vertex AI" if use_vertex_ai and VERTEX_AI_AVAILABLE else "Google AI"
-        ai_provider = st.selectbox(
-            "🤖 AIプロバイダー",
-            ["Google AI", "Vertex AI"] if VERTEX_AI_AVAILABLE else ["Google AI"],
-            index=["Google AI", "Vertex AI"].index(default_provider) if default_provider in ["Google AI", "Vertex AI"] else 0,
-            key="ai_provider"
-        )
-        
         # モデル選択
-        if ai_provider == "Google AI":
-            available_models = default_model_options
-        else:
-            available_models = vertex_model_options
-            
         selected_model = st.selectbox(
             "🎯 モデル",
-            available_models,
-            index=0 if default_model not in available_models else available_models.index(default_model),
+            vertex_model_options,
+            index=0 if default_model not in vertex_model_options else vertex_model_options.index(default_model),
             key="selected_model"
         )
     
     with col2:
-        if ai_provider == "Google AI":
-            api_key_input = st.text_input(
-                "🔑 Google API Key",
-                value=google_api_key,
-                type="password",
-                help="Google AI Studio で取得したAPIキーを入力してください"
-            )
-        else:
-            project_id_input = st.text_input(
-                "📁 Project ID",
-                value=vertex_ai_project_id,
-                help="Google Cloud プロジェクトIDを入力してください"
-            )
-            location_input = st.text_input(
-                "🌍 Location",
-                value=vertex_ai_location,
-                help="Vertex AI のリージョンを指定してください"
-            )
+        project_id_input = st.text_input(
+            "📁 Project ID",
+            value=vertex_ai_project_id,
+            help="Google Cloud プロジェクトIDを入力してください"
+        )
+        location_input = st.text_input(
+            "🌍 Location",
+            value=vertex_ai_location,
+            help="Vertex AI のリージョンを指定してください"
+        )
 
 # Input section
 st.header("入力")
-user_question = st.text_area("ユーザーからの質問", height=100)
 
-# キーワードカテゴリ選択（最大4つまで）
-st.subheader("使用されたキーワードカテゴリ")
-col1, col2 = st.columns(2)
+# 入力モード選択
+input_mode = st.radio(
+    "入力方法を選択",
+    ["手動入力", "CSV一括処理"],
+    key="input_mode"
+)
 
-with col1:
-    category1 = st.selectbox("カテゴリ1", ["なし", "ハウス", "サイン", "天体", "エレメント", "MP軸", "タロット"], key="cat1")
-    if category1 != "なし":
-        keyword1 = st.text_input("キーワード1", placeholder="例: 第1ハウス", key="kw1")
-    else:
-        keyword1 = ""
-
-with col2:
-    category2 = st.selectbox("カテゴリ2", ["なし", "ハウス", "サイン", "天体", "エレメント", "MP軸", "タロット"], key="cat2")
-    if category2 != "なし":
-        keyword2 = st.text_input("キーワード2", placeholder="例: 牡羊座", key="kw2")
-    else:
-        keyword2 = ""
-
-col3, col4 = st.columns(2)
-
-with col3:
-    category3 = st.selectbox("カテゴリ3", ["なし", "ハウス", "サイン", "天体", "エレメント", "MP軸", "タロット"], key="cat3")
-    if category3 != "なし":
-        keyword3 = st.text_input("キーワード3", placeholder="例: 太陽", key="kw3")
-    else:
-        keyword3 = ""
-
-with col4:
-    category4 = st.selectbox("カテゴリ4", ["なし", "ハウス", "サイン", "天体", "エレメント", "MP軸", "タロット"], key="cat4")
-    if category4 != "なし":
-        keyword4 = st.text_input("キーワード4", placeholder="例: 火", key="kw4")
-    else:
-        keyword4 = ""
-
-ai_answer = st.text_area("AI占い師の回答", height=150)
+if input_mode == "手動入力":
+    user_question = st.text_area("ユーザーからの質問", height=100)
+    
+    # キーワードカテゴリ選択（最大4つまで）
+    st.subheader("使用されたキーワードカテゴリ")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        category1 = st.selectbox("カテゴリ1", ["なし", "ハウス", "サイン", "天体", "エレメント", "MP軸", "タロット"], key="cat1")
+        if category1 != "なし":
+            keyword1 = st.text_input("キーワード1", placeholder="例: 第1ハウス", key="kw1")
+        else:
+            keyword1 = ""
+    
+    with col2:
+        category2 = st.selectbox("カテゴリ2", ["なし", "ハウス", "サイン", "天体", "エレメント", "MP軸", "タロット"], key="cat2")
+        if category2 != "なし":
+            keyword2 = st.text_input("キーワード2", placeholder="例: 牡羊座", key="kw2")
+        else:
+            keyword2 = ""
+    
+    col3, col4 = st.columns(2)
+    
+    with col3:
+        category3 = st.selectbox("カテゴリ3", ["なし", "ハウス", "サイン", "天体", "エレメント", "MP軸", "タロット"], key="cat3")
+        if category3 != "なし":
+            keyword3 = st.text_input("キーワード3", placeholder="例: 太陽", key="kw3")
+        else:
+            keyword3 = ""
+    
+    with col4:
+        category4 = st.selectbox("カテゴリ4", ["なし", "ハウス", "サイン", "天体", "エレメント", "MP軸", "タロット"], key="cat4")
+        if category4 != "なし":
+            keyword4 = st.text_input("キーワード4", placeholder="例: 火", key="kw4")
+        else:
+            keyword4 = ""
+    
+    ai_answer = st.text_area("AI占い師の回答", height=150)
+    
+else:  # CSV一括処理モード
+    st.info("生成アプリで出力されたCSVファイルをアップロードしてください")
+    
+    uploaded_file = st.file_uploader("CSVファイルを選択", type=['csv'])
+    
+    if uploaded_file is not None:
+        try:
+            # CSVファイルを読み込み
+            df = pd.read_csv(uploaded_file, encoding='utf-8-sig')
+            
+            # 必要な列の存在確認
+            required_columns = ["id", "質問", "回答"]
+            if not all(col in df.columns for col in required_columns):
+                st.error(f"必須列が不足しています: {required_columns}")
+            else:
+                # キーワード列の検出（動的に対応）
+                keyword_columns = []
+                for col in df.columns:
+                    # カテゴリ名で終わる列を検出（例: ハウス1, サイン2, など）
+                    if any(col.endswith(str(i)) for i in range(1, 5)):
+                        for cat in ["ハウス", "サイン", "天体", "エレメント", "MP軸", "タロット"]:
+                            if col.startswith(cat):
+                                keyword_columns.append(col)
+                                break
+                
+                st.success(f"✅ {len(df)}件のデータを読み込みました")
+                st.write(f"検出されたキーワード列: {keyword_columns}")
+                
+                # プレビュー表示
+                with st.expander("データプレビュー", expanded=False):
+                    st.dataframe(df.head())
+                
+                # セッション状態に保存
+                if 'csv_data' not in st.session_state:
+                    st.session_state.csv_data = df
+                    st.session_state.keyword_columns = keyword_columns
+                
+        except Exception as e:
+            st.error(f"CSVファイルの読み込みエラー: {e}")
 
 # Initialize session state
 if 'corrections' not in st.session_state:
@@ -349,44 +339,38 @@ if 'user_input' not in st.session_state:
     st.session_state.user_input = {"question": "", "keywords": [], "answer": ""}
 
 # Process button
-if st.button("校正を実行") or st.session_state.correction_done:
-    if not user_question or not ai_answer:
-        st.error("質問と回答を入力してください")
-    else:
-        # キーワード情報の整理
-        keywords = []
-        if category1 != "なし" and keyword1:
-            keywords.append(f"{category1}: {keyword1}")
-        if category2 != "なし" and keyword2:
-            keywords.append(f"{category2}: {keyword2}")
-        if category3 != "なし" and keyword3:
-            keywords.append(f"{category3}: {keyword3}")
-        if category4 != "なし" and keyword4:
-            keywords.append(f"{category4}: {keyword4}")
-        
-        # Save user input to session state
-        st.session_state.user_input = {
-            "question": user_question,
-            "keywords": keywords,
-            "answer": ai_answer
-        }
-        
-        # Set correction_done flag to true
-        st.session_state.correction_done = True
-        
-        # 設定の準備
-        if ai_provider == "Google AI":
-            current_api_key = api_key_input
-            current_project_id = None
-            current_location = None
-            current_service_account = None
+if input_mode == "手動入力":
+    if st.button("校正を実行") or st.session_state.correction_done:
+        if not user_question or not ai_answer:
+            st.error("質問と回答を入力してください")
         else:
-            current_api_key = None
+            # キーワード情報の整理
+            keywords = []
+            if category1 != "なし" and keyword1:
+                keywords.append(f"{category1}: {keyword1}")
+            if category2 != "なし" and keyword2:
+                keywords.append(f"{category2}: {keyword2}")
+            if category3 != "なし" and keyword3:
+                keywords.append(f"{category3}: {keyword3}")
+            if category4 != "なし" and keyword4:
+                keywords.append(f"{category4}: {keyword4}")
+            
+            # Save user input to session state
+            st.session_state.user_input = {
+                "question": user_question,
+                "keywords": keywords,
+                "answer": ai_answer
+            }
+            
+            # Set correction_done flag to true
+            st.session_state.correction_done = True
+            
+            # 設定の準備
             current_project_id = project_id_input
             current_location = location_input
             current_service_account = gcp_service_account
 
-        # Only call APIs if not already done
+            # Only call APIs if not already done
         if 'tonmana_result' not in st.session_state:
             with st.spinner("トンマナ校正中..."):
                 # 1. トンマナ校正
@@ -402,9 +386,7 @@ if st.button("校正を実行") or st.session_state.correction_done:
                 tonmana_result = call_gemini(
                     tonmana_prompt, 
                     tonmana_message,
-                    ai_provider,
                     selected_model,
-                    current_api_key,
                     current_project_id,
                     current_location,
                     current_service_account
@@ -431,9 +413,7 @@ if st.button("校正を実行") or st.session_state.correction_done:
                 japanese_result = call_gemini(
                     japanese_prompt,
                     japanese_message,
-                    ai_provider,
                     selected_model,
-                    current_api_key,
                     current_project_id,
                     current_location,
                     current_service_account
@@ -460,9 +440,7 @@ if st.button("校正を実行") or st.session_state.correction_done:
                 logic_result = call_gemini(
                     logic_prompt,
                     logic_message,
-                    ai_provider,
                     selected_model,
-                    current_api_key,
                     current_project_id,
                     current_location,
                     current_service_account
@@ -598,16 +576,9 @@ if st.session_state.get("show_comprehensive_button", False):
         if 'comprehensive_result' not in st.session_state:
             with st.spinner("総合校正中..."):
                 # 設定の準備（comprehensive correction用）
-                if ai_provider == "Google AI":
-                    current_api_key = api_key_input
-                    current_project_id = None
-                    current_location = None
-                    current_service_account = None
-                else:
-                    current_api_key = None
-                    current_project_id = project_id_input
-                    current_location = location_input
-                    current_service_account = gcp_service_account
+                current_project_id = project_id_input
+                current_location = location_input
+                current_service_account = gcp_service_account
                 # Prepare selected improvements
                 selected_improvements = {
                     "トンマナ校正": st.session_state.get("tonmana_problems", []),
@@ -647,9 +618,7 @@ if st.session_state.get("show_comprehensive_button", False):
                 comprehensive_result = call_gemini(
                     comprehensive_prompt,
                     comprehensive_message,
-                    ai_provider,
                     selected_model,
-                    current_api_key,
                     current_project_id,
                     current_location,
                     current_service_account
@@ -662,3 +631,150 @@ if st.session_state.get("show_comprehensive_button", False):
         if 'comprehensive_result' in st.session_state:
             st.subheader("総合校正結果")
             st.write(st.session_state.comprehensive_result)
+
+# CSV一括処理モード
+elif input_mode == "CSV一括処理" and 'csv_data' in st.session_state:
+    if st.button("一括校正を実行"):
+        df = st.session_state.csv_data
+        keyword_columns = st.session_state.keyword_columns
+        
+        # 結果を保存するための列を追加
+        df['トンマナスコア'] = 0
+        df['日本語スコア'] = 0
+        df['ロジックスコア'] = 0
+        df['総合スコア'] = 0
+        df['改善点'] = ""
+        df['総合校正結果'] = ""
+        
+        # 設定の準備
+        current_project_id = project_id_input
+        current_location = location_input
+        current_service_account = gcp_service_account
+        
+        # プログレスバー
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
+        # 各行を処理
+        for index, row in df.iterrows():
+            status_text.text(f"処理中: {index + 1}/{len(df)}")
+            
+            # 質問と回答を取得
+            current_question = row['質問']
+            current_answer = row['回答']
+            
+            # キーワードを整理
+            keywords = []
+            for col in keyword_columns:
+                if pd.notna(row[col]):
+                    # カテゴリ名を抽出（例: "ハウス1" -> "ハウス"）
+                    category = ''.join([c for c in col if not c.isdigit()])
+                    keywords.append(f"{category}: {row[col]}")
+            
+            # 1. トンマナ校正
+            tonmana_message = f"""##QUESTION##
+{current_question}
+
+##KEYWORDS##
+{', '.join(keywords) if keywords else 'なし'}
+
+##ANSWER_CAND##
+{current_answer}
+"""
+            tonmana_result = call_gemini(
+                tonmana_prompt, 
+                tonmana_message,
+                selected_model,
+                current_project_id,
+                current_location,
+                current_service_account
+            )
+            
+            tonmana_json = parse_json_response(tonmana_result) if tonmana_result else None
+            if tonmana_json:
+                df.at[index, 'トンマナスコア'] = tonmana_json.get('style_score', 0)
+                problems = tonmana_json.get('improvements', tonmana_json.get('problems', []))
+                if problems:
+                    df.at[index, '改善点'] += f"【トンマナ】{', '.join(problems)}\n"
+            
+            # 2. 日本語校正
+            japanese_result = call_gemini(
+                japanese_prompt,
+                current_answer,
+                selected_model,
+                current_project_id,
+                current_location,
+                current_service_account
+            )
+            
+            japanese_json = parse_json_response(japanese_result) if japanese_result else None
+            if japanese_json:
+                df.at[index, '日本語スコア'] = japanese_json.get('score', 0)
+                improvements = japanese_json.get('improvements', [])
+                if improvements:
+                    df.at[index, '改善点'] += f"【日本語】{', '.join(improvements)}\n"
+            
+            # 3. ロジック校正
+            logic_message = f"""質問: {current_question}
+使用キーワード: {', '.join(keywords) if keywords else 'なし'}
+回答: {current_answer}
+"""
+            logic_result = call_gemini(
+                logic_prompt,
+                logic_message,
+                selected_model,
+                current_project_id,
+                current_location,
+                current_service_account
+            )
+            
+            logic_json = parse_json_response(logic_result) if logic_result else None
+            if logic_json:
+                df.at[index, 'ロジックスコア'] = logic_json.get('score', 0)
+                improvements = logic_json.get('improvements', [])
+                if improvements:
+                    df.at[index, '改善点'] += f"【ロジック】{', '.join(improvements)}\n"
+            
+            # 総合スコア計算
+            total_score = df.at[index, 'トンマナスコア'] + df.at[index, '日本語スコア'] + df.at[index, 'ロジックスコア']
+            df.at[index, '総合スコア'] = total_score
+            
+            # プログレス更新
+            progress_bar.progress((index + 1) / len(df))
+        
+        status_text.text("処理完了!")
+        
+        # 結果表示
+        st.subheader("校正結果サマリー")
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            avg_tonmana = df['トンマナスコア'].mean()
+            st.metric("平均トンマナスコア", f"{avg_tonmana:.2f}/5")
+        
+        with col2:
+            avg_japanese = df['日本語スコア'].mean()
+            st.metric("平均日本語スコア", f"{avg_japanese:.2f}/5")
+        
+        with col3:
+            avg_logic = df['ロジックスコア'].mean()
+            st.metric("平均ロジックスコア", f"{avg_logic:.2f}/5")
+        
+        with col4:
+            avg_total = df['総合スコア'].mean()
+            st.metric("平均総合スコア", f"{avg_total:.2f}/15")
+        
+        # 結果プレビュー
+        with st.expander("結果プレビュー", expanded=True):
+            st.dataframe(df[['id', '質問', 'トンマナスコア', '日本語スコア', 'ロジックスコア', '総合スコア', '改善点']].head(10))
+        
+        # CSV出力
+        output_buffer = io.StringIO()
+        df.to_csv(output_buffer, index=False, encoding='utf-8-sig')
+        
+        st.download_button(
+            label="📥 校正結果をCSVでダウンロード",
+            data=output_buffer.getvalue(),
+            file_name=f"mimiko_correction_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+            mime="text/csv"
+        )
