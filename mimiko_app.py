@@ -976,21 +976,24 @@ if 'csv_data' in st.session_state:
                         
                         is_selected = improvement in st.session_state[f'selected_tonmana_{selected_row_idx}']
                         
-                        # 選択状態に応じて背景色を変更
-                        if is_selected:
-                            st.markdown(f"<div style='background-color: #e3f2fd; padding: 10px; border-radius: 5px; margin: 5px 0;'>", unsafe_allow_html=True)
-                        else:
-                            st.markdown(f"<div style='background-color: #f5f5f5; padding: 10px; border-radius: 5px; margin: 5px 0;'>", unsafe_allow_html=True)
-                        
-                        if st.checkbox(f"改善点 {i+1}", key=f"tonmana_cb_{selected_row_idx}_{i}", value=is_selected, help=safe_improvement):
-                            if improvement not in st.session_state[f'selected_tonmana_{selected_row_idx}']:
-                                st.session_state[f'selected_tonmana_{selected_row_idx}'].append(improvement)
-                        else:
-                            if improvement in st.session_state[f'selected_tonmana_{selected_row_idx}']:
-                                st.session_state[f'selected_tonmana_{selected_row_idx}'].remove(improvement)
-                        
-                        st.caption(display_text)
-                        st.markdown("</div>", unsafe_allow_html=True)
+                        # チェックボックスとテキストを一体化
+                        container = st.container()
+                        with container:
+                            col_check, col_text = st.columns([1, 20])
+                            with col_check:
+                                if st.checkbox(f"{i+1}", key=f"tonmana_cb_{selected_row_idx}_{i}", value=is_selected, label_visibility="collapsed"):
+                                    if improvement not in st.session_state[f'selected_tonmana_{selected_row_idx}']:
+                                        st.session_state[f'selected_tonmana_{selected_row_idx}'].append(improvement)
+                                else:
+                                    if improvement in st.session_state[f'selected_tonmana_{selected_row_idx}']:
+                                        st.session_state[f'selected_tonmana_{selected_row_idx}'].remove(improvement)
+                            
+                            with col_text:
+                                # 選択状態に応じた色で表示
+                                if is_selected:
+                                    st.info(f"**{i+1}.** {display_text}")
+                                else:
+                                    st.markdown(f"**{i+1}.** {display_text}")
             else:
                 st.success("✅ 改善点はありません")
         
@@ -1032,21 +1035,24 @@ if 'csv_data' in st.session_state:
                             
                             is_selected = improvement in st.session_state[f'selected_japanese_{selected_row_idx}']
                             
-                            # 選択状態に応じて背景色を変更
-                            if is_selected:
-                                st.markdown(f"<div style='background-color: #fff3e0; padding: 10px; border-radius: 5px; margin: 5px 0;'>", unsafe_allow_html=True)
-                            else:
-                                st.markdown(f"<div style='background-color: #f5f5f5; padding: 10px; border-radius: 5px; margin: 5px 0;'>", unsafe_allow_html=True)
-                            
-                            if st.checkbox(f"改善点 {i+1}", key=f"japanese_cb_{selected_row_idx}_{i}", value=is_selected, help=safe_improvement):
-                                if improvement not in st.session_state[f'selected_japanese_{selected_row_idx}']:
-                                    st.session_state[f'selected_japanese_{selected_row_idx}'].append(improvement)
-                            else:
-                                if improvement in st.session_state[f'selected_japanese_{selected_row_idx}']:
-                                    st.session_state[f'selected_japanese_{selected_row_idx}'].remove(improvement)
-                            
-                            st.caption(display_text)
-                            st.markdown("</div>", unsafe_allow_html=True)
+                            # チェックボックスとテキストを一体化
+                            container = st.container()
+                            with container:
+                                col_check, col_text = st.columns([1, 20])
+                                with col_check:
+                                    if st.checkbox(f"{i+1}", key=f"japanese_cb_{selected_row_idx}_{i}", value=is_selected, label_visibility="collapsed"):
+                                        if improvement not in st.session_state[f'selected_japanese_{selected_row_idx}']:
+                                            st.session_state[f'selected_japanese_{selected_row_idx}'].append(improvement)
+                                    else:
+                                        if improvement in st.session_state[f'selected_japanese_{selected_row_idx}']:
+                                            st.session_state[f'selected_japanese_{selected_row_idx}'].remove(improvement)
+                                
+                                with col_text:
+                                    # 選択状態に応じた色で表示
+                                    if is_selected:
+                                        st.warning(f"**{i+1}.** {display_text}")
+                                    else:
+                                        st.markdown(f"**{i+1}.** {display_text}")
                 else:
                     st.success("✅ 改善点はありません")
         
@@ -1122,26 +1128,29 @@ if 'csv_data' in st.session_state:
                     for i, improvement in enumerate(improvements):
                         # 改善点のテキストを安全に処理
                         safe_improvement = str(improvement).replace('\n', ' ').replace('\r', ' ').strip()
-                        # 長すぎる場合は切り詰める
+                        # 長すぎる場堂は切り詰める
                         display_text = safe_improvement[:200] + "..." if len(safe_improvement) > 200 else safe_improvement
                         
                         is_selected = improvement in st.session_state[f'selected_logic_{selected_row_idx}']
                         
-                        # 選択状態に応じて背景色を変更
-                        if is_selected:
-                            st.markdown(f"<div style='background-color: #ffebee; padding: 10px; border-radius: 5px; margin: 5px 0;'>", unsafe_allow_html=True)
-                        else:
-                            st.markdown(f"<div style='background-color: #f5f5f5; padding: 10px; border-radius: 5px; margin: 5px 0;'>", unsafe_allow_html=True)
-                        
-                        if st.checkbox(f"改善点 {i+1}", key=f"logic_cb_{selected_row_idx}_{i}", value=is_selected, help=safe_improvement):
-                            if improvement not in st.session_state[f'selected_logic_{selected_row_idx}']:
-                                st.session_state[f'selected_logic_{selected_row_idx}'].append(improvement)
-                        else:
-                            if improvement in st.session_state[f'selected_logic_{selected_row_idx}']:
-                                st.session_state[f'selected_logic_{selected_row_idx}'].remove(improvement)
-                        
-                        st.caption(display_text)
-                        st.markdown("</div>", unsafe_allow_html=True)
+                        # チェックボックスとテキストを一体化
+                        container = st.container()
+                        with container:
+                            col_check, col_text = st.columns([1, 20])
+                            with col_check:
+                                if st.checkbox(f"{i+1}", key=f"logic_cb_{selected_row_idx}_{i}", value=is_selected, label_visibility="collapsed"):
+                                    if improvement not in st.session_state[f'selected_logic_{selected_row_idx}']:
+                                        st.session_state[f'selected_logic_{selected_row_idx}'].append(improvement)
+                                else:
+                                    if improvement in st.session_state[f'selected_logic_{selected_row_idx}']:
+                                        st.session_state[f'selected_logic_{selected_row_idx}'].remove(improvement)
+                            
+                            with col_text:
+                                # 選択状態に応じた色で表示
+                                if is_selected:
+                                    st.error(f"**{i+1}.** {display_text}")
+                                else:
+                                    st.markdown(f"**{i+1}.** {display_text}")
             else:
                 st.success("✅ 改善点はありません")
         
