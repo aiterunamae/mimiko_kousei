@@ -976,24 +976,27 @@ if 'csv_data' in st.session_state:
                         
                         is_selected = improvement in st.session_state[f'selected_tonmana_{selected_row_idx}']
                         
-                        # チェックボックスの状態を更新
-                        checkbox_key = f"tonmana_cb_{selected_row_idx}_{i}"
-                        checkbox_value = st.checkbox(
-                            f"{i+1}. {display_text}",
-                            key=checkbox_key,
-                            value=is_selected,
-                            help=safe_improvement if len(safe_improvement) > 200 else None
-                        )
-                        
-                        # 状態の更新
-                        if checkbox_value and improvement not in st.session_state[f'selected_tonmana_{selected_row_idx}']:
-                            st.session_state[f'selected_tonmana_{selected_row_idx}'].append(improvement)
-                        elif not checkbox_value and improvement in st.session_state[f'selected_tonmana_{selected_row_idx}']:
-                            st.session_state[f'selected_tonmana_{selected_row_idx}'].remove(improvement)
-                        
-                        # 選択状態に応じた色付き表示
-                        if checkbox_value:
-                            st.markdown(f'<div style="background-color: #e3f2fd; padding: 10px; border-radius: 5px; margin-top: -35px; margin-bottom: 10px;">選択済み</div>', unsafe_allow_html=True)
+                        # チェックボックスとテキストを一体化
+                        container = st.container()
+                        with container:
+                            col_check, col_text = st.columns([1, 20])
+                            with col_check:
+                                checkbox_value = st.checkbox(f"{i+1}", key=f"tonmana_cb_{selected_row_idx}_{i}", value=is_selected, label_visibility="collapsed")
+                                
+                                # 状態が変更されたら即座に更新
+                                if checkbox_value != is_selected:
+                                    if checkbox_value:
+                                        st.session_state[f'selected_tonmana_{selected_row_idx}'].append(improvement)
+                                    else:
+                                        st.session_state[f'selected_tonmana_{selected_row_idx}'].remove(improvement)
+                                    st.rerun()
+                            
+                            with col_text:
+                                # 選択状態に応じた色で表示
+                                if is_selected:
+                                    st.info(f"**{i+1}.** {display_text}")
+                                else:
+                                    st.markdown(f"**{i+1}.** {display_text}")
             else:
                 st.success("✅ 改善点はありません")
         
@@ -1035,21 +1038,27 @@ if 'csv_data' in st.session_state:
                             
                             is_selected = improvement in st.session_state[f'selected_japanese_{selected_row_idx}']
                             
-                            # チェックボックスの値を直接取得
-                            checkbox_key = f"japanese_cb_{selected_row_idx}_{i}"
-                            checkbox_value = st.checkbox(
-                                f"✅ {display_text}" if is_selected else f"☐ {display_text}",
-                                key=checkbox_key,
-                                value=is_selected,
-                                help=safe_improvement if len(safe_improvement) > 200 else None
-                            )
-                            
-                            # 状態の更新
-                            if checkbox_value != is_selected:
-                                if checkbox_value:
-                                    st.session_state[f'selected_japanese_{selected_row_idx}'].append(improvement)
-                                else:
-                                    st.session_state[f'selected_japanese_{selected_row_idx}'].remove(improvement)
+                            # チェックボックスとテキストを一体化
+                            container = st.container()
+                            with container:
+                                col_check, col_text = st.columns([1, 20])
+                                with col_check:
+                                    checkbox_value = st.checkbox(f"{i+1}", key=f"japanese_cb_{selected_row_idx}_{i}", value=is_selected, label_visibility="collapsed")
+                                    
+                                    # 状態が変更されたら即座に更新
+                                    if checkbox_value != is_selected:
+                                        if checkbox_value:
+                                            st.session_state[f'selected_japanese_{selected_row_idx}'].append(improvement)
+                                        else:
+                                            st.session_state[f'selected_japanese_{selected_row_idx}'].remove(improvement)
+                                        st.rerun()
+                                
+                                with col_text:
+                                    # 選択状態に応じた色で表示
+                                    if is_selected:
+                                        st.warning(f"**{i+1}.** {display_text}")
+                                    else:
+                                        st.markdown(f"**{i+1}.** {display_text}")
                 else:
                     st.success("✅ 改善点はありません")
         
@@ -1130,21 +1139,27 @@ if 'csv_data' in st.session_state:
                         
                         is_selected = improvement in st.session_state[f'selected_logic_{selected_row_idx}']
                         
-                        # チェックボックスの値を直接取得
-                        checkbox_key = f"logic_cb_{selected_row_idx}_{i}"
-                        checkbox_value = st.checkbox(
-                            f"✅ {display_text}" if is_selected else f"☐ {display_text}",
-                            key=checkbox_key,
-                            value=is_selected,
-                            help=safe_improvement if len(safe_improvement) > 200 else None
-                        )
-                        
-                        # 状態の更新
-                        if checkbox_value != is_selected:
-                            if checkbox_value:
-                                st.session_state[f'selected_logic_{selected_row_idx}'].append(improvement)
-                            else:
-                                st.session_state[f'selected_logic_{selected_row_idx}'].remove(improvement)
+                        # チェックボックスとテキストを一体化
+                        container = st.container()
+                        with container:
+                            col_check, col_text = st.columns([1, 20])
+                            with col_check:
+                                checkbox_value = st.checkbox(f"{i+1}", key=f"logic_cb_{selected_row_idx}_{i}", value=is_selected, label_visibility="collapsed")
+                                
+                                # 状態が変更されたら即座に更新
+                                if checkbox_value != is_selected:
+                                    if checkbox_value:
+                                        st.session_state[f'selected_logic_{selected_row_idx}'].append(improvement)
+                                    else:
+                                        st.session_state[f'selected_logic_{selected_row_idx}'].remove(improvement)
+                                    st.rerun()
+                            
+                            with col_text:
+                                # 選択状態に応じた色で表示
+                                if is_selected:
+                                    st.error(f"**{i+1}.** {display_text}")
+                                else:
+                                    st.markdown(f"**{i+1}.** {display_text}")
             else:
                 st.success("✅ 改善点はありません")
         
