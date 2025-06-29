@@ -1608,6 +1608,11 @@ if 'csv_data' in st.session_state:
                     batch_key = f"batch_comprehensive_{score_threshold}"
                     if st.button(f"🚀 {len(low_score_df)}件のデータを総合校正", type="primary", key=batch_key):
                         with st.spinner("総合校正を実行中..."):
+                            # 設定の準備
+                            current_project_id = vertex_ai_project_id
+                            current_location = vertex_ai_location
+                            current_service_account = gcp_service_account
+                            
                             comprehensive_progress = st.progress(0)
                             comprehensive_status = st.empty()
                             
