@@ -1365,7 +1365,11 @@ if 'csv_data' in st.session_state:
         if len(df) > 20:
             st.warning(f"⚠️ 大量のデータ（{len(df)}件）の一括処理には時間がかかります")
         
-        if st.button("🎯 全データを一括校正", type="secondary"):
+        # 一括校正結果がある場合はメッセージ表示
+        if 'batch_results_df' in st.session_state:
+            st.info("ℹ️ 一括校正済みです。下記の低スコアデータ総合校正に進んでください")
+        
+        if st.button("🎯 全データを一括校正", type="secondary", disabled='batch_results_df' in st.session_state):
                 # 結果を保存するための列を追加
                 df['トンマナスコア'] = 0
                 df['日本語スコア'] = 0
@@ -1508,8 +1512,24 @@ if 'csv_data' in st.session_state:
                 
                 status_text.text("処理完了!")
                 
-                # 結果表示
-                st.subheader("📊 校正結果サマリー")
+                # 結果をセッションに保存
+                st.session_state['batch_results_df'] = df.copy()
+                
+        # 一括校正結果がある場合のみ表示
+        if 'batch_results_df' in st.session_state:
+            df = st.session_state['batch_results_df']
+            
+            # リセットボタン
+            col_reset1, col_reset2, col_reset3 = st.columns([1, 2, 1])
+            with col_reset2:
+                if st.button("🔄 一括校正結果をリセット", type="secondary", use_container_width=True):
+                    del st.session_state['batch_results_df']
+                    if 'batch_comprehensive_df' in st.session_state:
+                        del st.session_state['batch_comprehensive_df']
+                    st.rerun()
+            
+            # 結果表示
+            st.subheader("📊 校正結果サマリー")
                 
                 # スコアサマリーをカード形式で表示
                 col1, col2, col3, col4 = st.columns(4)
@@ -1638,38 +1658,40 @@ if 'csv_data' in st.session_state:
                 else:
                     st.info(f"総合スコア{score_threshold}点以下のデータはありません")
                 
-                # 総合校正結果の表示
-                if 'batch_comprehensive_df' in st.session_state:
-                    df = st.session_state['batch_comprehensive_df']
-                    comprehensive_completed = df[df['総合校正結果'] != '']
-                    
-                    if len(comprehensive_completed) > 0:
-                        st.divider()
-                        st.subheader("📝 総合校正結果")
-                        with st.expander(f"総合校正済み: {len(comprehensive_completed)}件", expanded=False):
-                            for idx, row in comprehensive_completed.iterrows():
-                                st.markdown(f"**ID: {row['id']}**")
-                                col1, col2 = st.columns(2)
-                                with col1:
-                                    st.markdown("🔸 **元の回答:**")
-                                    st.text_area("", value=row['回答'], height=150, disabled=True, key=f"orig_{idx}")
-                                with col2:
-                                    st.markdown("✨ **校正後:**")
-                                    st.text_area("", value=row['総合校正結果'], height=150, disabled=True, key=f"comp_{idx}")
-                                st.divider()
+            # 総合校正結果の表示
+            if 'batch_comprehensive_df' in st.session_state:
+                df_comp = st.session_state['batch_comprehensive_df']
+                comprehensive_completed = df_comp[df_comp['総合校正結果'] != '']
                 
-                # CSV出力
-                st.divider()
-                output_buffer = io.StringIO()
-                df.to_csv(output_buffer, index=False, encoding='utf-8-sig')
+                if len(comprehensive_completed) > 0:
+                    st.divider()
+                    st.subheader("📝 総合校正結果")
+                    with st.expander(f"総合校正済み: {len(comprehensive_completed)}件", expanded=False):
+                        for idx, row in comprehensive_completed.iterrows():
+                            st.markdown(f"**ID: {row['id']}**")
+                            col1, col2 = st.columns(2)
+                            with col1:
+                                st.markdown("🔸 **元の回答:**")
+                                st.text_area("", value=row['回答'], height=150, disabled=True, key=f"orig_{idx}")
+                            with col2:
+                                st.markdown("✨ **校正後:**")
+                                st.text_area("", value=row['総合校正結果'], height=150, disabled=True, key=f"comp_{idx}")
+                            st.divider()
                 
-                # ダウンロードボタンを中央に配置
-                col_dl1, col_dl2, col_dl3 = st.columns([1, 2, 1])
-                with col_dl2:
-                    st.download_button(
-                        label="📥 校正結果をCSVでダウンロード",
-                        data=output_buffer.getvalue(),
-                        file_name=f"mimiko_correction_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                        mime="text/csv",
-                        use_container_width=True
-                    )
+            # CSV出力
+            st.divider()
+            output_buffer = io.StringIO()
+            # batch_comprehensive_dfがある場合はそれを使用
+            export_df = st.session_state.get('batch_comprehensive_df', df)
+            export_df.to_csv(output_buffer, index=False, encoding='utf-8-sig')
+            
+            # ダウンロードボタンを中央に配置
+            col_dl1, col_dl2, col_dl3 = st.columns([1, 2, 1])
+            with col_dl2:
+                st.download_button(
+                    label="📥 校正結果をCSVでダウンロード",
+                    data=output_buffer.getvalue(),
+                    file_name=f"mimiko_correction_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
