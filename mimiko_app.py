@@ -1530,28 +1530,28 @@ if 'csv_data' in st.session_state:
             
             # 結果表示
             st.subheader("📊 校正結果サマリー")
+            
+            # スコアサマリーをカード形式で表示
+            col1, col2, col3, col4 = st.columns(4)
+            
+            with col1:
+                avg_tonmana = df['トンマナスコア'].mean()
+                st.metric("平均トンマナスコア", f"{avg_tonmana:.2f}/5")
                 
-                # スコアサマリーをカード形式で表示
-                col1, col2, col3, col4 = st.columns(4)
+            with col2:
+                avg_japanese = df['日本語スコア'].mean()
+                st.metric("平均日本語スコア", f"{avg_japanese:.2f}/5")
+            
+            with col3:
+                avg_logic = df['ロジックスコア'].mean()
+                st.metric("平均ロジックスコア", f"{avg_logic:.2f}/5")
+    
+            with col4:
+                avg_total = df['総合スコア'].mean()
+                st.metric("平均総合スコア", f"{avg_total:.2f}/15")
                 
-                with col1:
-                    avg_tonmana = df['トンマナスコア'].mean()
-                    st.metric("平均トンマナスコア", f"{avg_tonmana:.2f}/5")
-                
-                with col2:
-                    avg_japanese = df['日本語スコア'].mean()
-                    st.metric("平均日本語スコア", f"{avg_japanese:.2f}/5")
-                
-                with col3:
-                    avg_logic = df['ロジックスコア'].mean()
-                    st.metric("平均ロジックスコア", f"{avg_logic:.2f}/5")
-        
-                with col4:
-                    avg_total = df['総合スコア'].mean()
-                    st.metric("平均総合スコア", f"{avg_total:.2f}/15")
-                
-                # 結果プレビュー
-                with st.expander("📊 結果プレビュー", expanded=True):
+            # 結果プレビュー
+            with st.expander("📊 結果プレビュー", expanded=True):
                     # スコア部分と改善点を分けて表示
                     st.markdown("**スコア一覧**")
                     score_df = df[['id', '質問', 'トンマナスコア', '日本語スコア', 'ロジックスコア', '総合スコア']].head(10)
@@ -1576,13 +1576,13 @@ if 'csv_data' in st.session_state:
                         improvements_df = df[df['改善点'] != ''][['id', '質問', '改善点']].head(10)
                         st.dataframe(improvements_df, use_container_width=True)
                 
-                # 低スコアデータの総合校正
-                st.divider()
-                st.subheader("🎯 低スコアデータの一括総合校正")
-                
-                # スコアフィルタリング設定
-                col_filter1, col_filter2 = st.columns([2, 3])
-                with col_filter1:
+            # 低スコアデータの総合校正
+            st.divider()
+            st.subheader("🎯 低スコアデータの一括総合校正")
+            
+            # スコアフィルタリング設定
+            col_filter1, col_filter2 = st.columns([2, 3])
+            with col_filter1:
                     score_threshold = st.number_input(
                         "総合スコアが以下のデータを対象にする",
                         min_value=0,
@@ -1592,13 +1592,13 @@ if 'csv_data' in st.session_state:
                         help="総合スコアがこの値以下のデータを総合校正します"
                     )
                 
-                # 対象データのフィルタリング
-                low_score_df = df[df['総合スコア'] <= score_threshold]
-                
-                with col_filter2:
+            # 対象データのフィルタリング
+            low_score_df = df[df['総合スコア'] <= score_threshold]
+            
+            with col_filter2:
                     st.info(f"📊 対象データ: {len(low_score_df)}件 / 全{len(df)}件")
                 
-                if len(low_score_df) > 0:
+            if len(low_score_df) > 0:
                     # 対象データのプレビュー
                     with st.expander("🔍 対象データのプレビュー", expanded=False):
                         preview_df = low_score_df[['id', '質問', 'トンマナスコア', '日本語スコア', 'ロジックスコア', '総合スコア']].head(10)
@@ -1655,8 +1655,8 @@ if 'csv_data' in st.session_state:
                             # 結果をセッションに保存
                             st.session_state['batch_comprehensive_df'] = df.copy()
                 
-                else:
-                    st.info(f"総合スコア{score_threshold}点以下のデータはありません")
+            else:
+                st.info(f"総合スコア{score_threshold}点以下のデータはありません")
                 
             # 総合校正結果の表示
             if 'batch_comprehensive_df' in st.session_state:
