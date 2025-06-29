@@ -1556,7 +1556,110 @@ if 'csv_data' in st.session_state:
                         improvements_df = df[df['改善点'] != ''][['id', '質問', '改善点']].head(10)
                         st.dataframe(improvements_df, use_container_width=True)
                 
+                # 低スコアデータの総合校正
+                st.divider()
+                st.subheader("🎯 低スコアデータの一括総合校正")
+                
+                # スコアフィルタリング設定
+                col_filter1, col_filter2 = st.columns([2, 3])
+                with col_filter1:
+                    score_threshold = st.number_input(
+                        "総合スコアが以下のデータを対象にする",
+                        min_value=0,
+                        max_value=15,
+                        value=9,
+                        step=1,
+                        help="総合スコアがこの値以下のデータを総合校正します"
+                    )
+                
+                # 対象データのフィルタリング
+                low_score_df = df[df['総合スコア'] <= score_threshold]
+                
+                with col_filter2:
+                    st.info(f"📊 対象データ: {len(low_score_df)}件 / 全{len(df)}件")
+                
+                if len(low_score_df) > 0:
+                    # 対象データのプレビュー
+                    with st.expander("🔍 対象データのプレビュー", expanded=False):
+                        preview_df = low_score_df[['id', '質問', 'トンマナスコア', '日本語スコア', 'ロジックスコア', '総合スコア']].head(10)
+                        st.dataframe(preview_df, use_container_width=True)
+                    
+                    # 総合校正実行ボタン
+                    batch_key = f"batch_comprehensive_{score_threshold}"
+                    if st.button(f"🚀 {len(low_score_df)}件のデータを総合校正", type="primary", key=batch_key):
+                        with st.spinner("総合校正を実行中..."):
+                            comprehensive_progress = st.progress(0)
+                            comprehensive_status = st.empty()
+                            
+                            for idx, (index, row) in enumerate(low_score_df.iterrows()):
+                                comprehensive_status.text(f"総合校正中: {idx + 1}/{len(low_score_df)}")
+                                
+                                # 各校正の改善点を取得
+                                improvements_text = row['改善点']
+                                if improvements_text:
+                                    # 総合校正メッセージ作成
+                                    comprehensive_message = f"""AI占い師の回答:
+{row['回答']}
+
+使用されたキーワード:
+{", ".join([row[col] for col in keyword_columns if pd.notna(row[col])])}
+
+各校正AIの採点結果:
+トンマナ校正: {row['トンマナスコア']}/5
+日本語校正: {row['日本語スコア']}/5
+ロジック校正: {row['ロジックスコア']}/5
+
+選択された改善点:
+{improvements_text}"""
+                                    
+                                    # 総合校正実行
+                                    comprehensive_result = call_gemini(
+                                        comprehensive_prompt,
+                                        comprehensive_message,
+                                        selected_model,
+                                        current_project_id,
+                                        current_location,
+                                        current_service_account,
+                                        max_tokens=4000,
+                                        thinking_budget=thinking_budget
+                                    )
+                                    
+                                    if comprehensive_result:
+                                        df.at[index, '総合校正結果'] = comprehensive_result
+                                
+                                comprehensive_progress.progress((idx + 1) / len(low_score_df))
+                            
+                            comprehensive_status.text("総合校正完了!")
+                            st.success(f"✅ {len(low_score_df)}件の総合校正が完了しました")
+                            
+                            # 結果をセッションに保存
+                            st.session_state['batch_comprehensive_df'] = df.copy()
+                
+                else:
+                    st.info(f"総合スコア{score_threshold}点以下のデータはありません")
+                
+                # 総合校正結果の表示
+                if 'batch_comprehensive_df' in st.session_state:
+                    df = st.session_state['batch_comprehensive_df']
+                    comprehensive_completed = df[df['総合校正結果'] != '']
+                    
+                    if len(comprehensive_completed) > 0:
+                        st.divider()
+                        st.subheader("📝 総合校正結果")
+                        with st.expander(f"総合校正済み: {len(comprehensive_completed)}件", expanded=False):
+                            for idx, row in comprehensive_completed.iterrows():
+                                st.markdown(f"**ID: {row['id']}**")
+                                col1, col2 = st.columns(2)
+                                with col1:
+                                    st.markdown("🔸 **元の回答:**")
+                                    st.text_area("", value=row['回答'], height=150, disabled=True, key=f"orig_{idx}")
+                                with col2:
+                                    st.markdown("✨ **校正後:**")
+                                    st.text_area("", value=row['総合校正結果'], height=150, disabled=True, key=f"comp_{idx}")
+                                st.divider()
+                
                 # CSV出力
+                st.divider()
                 output_buffer = io.StringIO()
                 df.to_csv(output_buffer, index=False, encoding='utf-8-sig')
                 
