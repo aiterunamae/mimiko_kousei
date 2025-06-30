@@ -23,30 +23,31 @@ def check_password():
         username = st.session_state["username"]
         password = st.session_state["password"]
         
-        # Secretsから認証情報を取得
-        try:
-            # 管理者認証
-            if (username == st.secrets["admin_username"] and 
-                password == st.secrets["admin_password"]):
-                st.session_state["password_correct"] = True
-                st.session_state["user_role"] = "admin"
-                del st.session_state["password"]  # パスワードを削除
-                del st.session_state["username"]
-                return
-            # 一般ユーザー認証
-            elif (username == st.secrets["user_username"] and 
-                  password == st.secrets["user_password"]):
-                st.session_state["password_correct"] = True
-                st.session_state["user_role"] = "user"
-                del st.session_state["password"]  # パスワードを削除
-                del st.session_state["username"]
-                return
-        except KeyError:
-            # Secretsのキーが見つからない場合は何もしない
-            pass
-        except Exception:
-            # その他のエラーも無視
-            pass
+        # Secretsから認証情報を取得（本番環境用）
+        if hasattr(st, "secrets"):
+            try:
+                # 管理者認証
+                if (username == st.secrets["admin_username"] and 
+                    password == st.secrets["admin_password"]):
+                    st.session_state["password_correct"] = True
+                    st.session_state["user_role"] = "admin"
+                    del st.session_state["password"]  # パスワードを削除
+                    del st.session_state["username"]
+                    return
+                # 一般ユーザー認証
+                elif (username == st.secrets["user_username"] and 
+                      password == st.secrets["user_password"]):
+                    st.session_state["password_correct"] = True
+                    st.session_state["user_role"] = "user"
+                    del st.session_state["password"]  # パスワードを削除
+                    del st.session_state["username"]
+                    return
+            except KeyError as e:
+                st.error(f"認証設定エラー: Secretsに必要な設定が見つかりません - {e}")
+            except Exception as e:
+                st.error(f"認証エラー: {e}")
+        else:
+            st.error("Secrets設定が見つかりません。Streamlit Cloudで適切に設定してください。")
         
         st.session_state["password_correct"] = False
 
