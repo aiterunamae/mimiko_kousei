@@ -6,6 +6,106 @@ from pathlib import Path
 from datetime import datetime
 import pandas as pd
 import io
+import hashlib
+
+# ページ設定（認証前に設定）
+st.set_page_config(
+    page_title="AI占い師回答校正ツール",
+    page_icon="🔮",
+    layout="wide"
+)
+
+# 認証機能
+def check_password():
+    """パスワード認証を行う"""
+    
+    def password_entered():
+        """パスワードが入力されたときの処理"""
+        username = st.session_state["username"]
+        password = st.session_state["password"]
+        
+        # Secretsから認証情報を取得
+        if hasattr(st, "secrets"):
+            # 管理者認証
+            if (username == st.secrets.get("admin_username", "") and 
+                password == st.secrets.get("admin_password", "")):
+                st.session_state["password_correct"] = True
+                st.session_state["user_role"] = "admin"
+                del st.session_state["password"]  # パスワードを削除
+                del st.session_state["username"]
+                return
+            # 一般ユーザー認証
+            elif (username == st.secrets.get("user_username", "") and 
+                  password == st.secrets.get("user_password", "")):
+                st.session_state["password_correct"] = True
+                st.session_state["user_role"] = "user"
+                del st.session_state["password"]  # パスワードを削除
+                del st.session_state["username"]
+                return
+        
+        st.session_state["password_correct"] = False
+
+    if "password_correct" not in st.session_state:
+        # 初回アクセス時
+        st.markdown("## 🔐 ログイン")
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.text_input(
+                "ユーザー名", 
+                key="username",
+                placeholder="ユーザー名を入力"
+            )
+            st.text_input(
+                "パスワード", 
+                type="password", 
+                key="password",
+                placeholder="パスワードを入力",
+                on_change=password_entered
+            )
+            if st.session_state.get("password_correct", True) == False:
+                st.error("😕 ユーザー名またはパスワードが間違っています")
+        return False
+    
+    elif not st.session_state["password_correct"]:
+        # パスワードが間違っている場合
+        st.markdown("## 🔐 ログイン")
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.text_input(
+                "ユーザー名", 
+                key="username",
+                placeholder="ユーザー名を入力"
+            )
+            st.text_input(
+                "パスワード", 
+                type="password", 
+                key="password",
+                placeholder="パスワードを入力",
+                on_change=password_entered
+            )
+            st.error("😕 ユーザー名またはパスワードが間違っています")
+        return False
+    else:
+        # パスワードが正しい場合
+        return True
+
+# 認証チェック
+if not check_password():
+    st.stop()
+
+# ログアウトボタン
+col1, col2 = st.columns([10, 1])
+with col2:
+    if st.button("ログアウト", type="secondary"):
+        for key in ["password_correct", "user_role"]:
+            if key in st.session_state:
+                del st.session_state[key]
+        st.rerun()
+
+# ユーザー情報表示
+if "user_role" in st.session_state:
+    role_display = "管理者" if st.session_state["user_role"] == "admin" else "一般ユーザー"
+    st.sidebar.info(f"ログイン中: {role_display}")
 
 # Google GenAI SDKのインポート
 try:
