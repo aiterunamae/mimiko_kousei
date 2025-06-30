@@ -1372,8 +1372,8 @@ if processing_mode == "🖊️ 手動入力モード":
                 use_container_width=True,
                 type="primary"
             )
-        else:
-            st.info("まだ校正済みのデータがありません。上記で個別に校正を実行してください。")
+    else:
+        st.info("まだ校正済みのデータがありません。上記で個別に校正を実行してください。")
 
 else:  # 一括処理モード
     st.info("生成アプリで出力されたCSVファイルをアップロードしてください")
