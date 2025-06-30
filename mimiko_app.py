@@ -1396,41 +1396,44 @@ else:  # 一括処理モード
         try:
             # CSVファイルを読み込み
             df = pd.read_csv(uploaded_file, encoding='utf-8-sig')
+        except Exception as e:
+            st.error(f"CSVファイルの読み込みエラー: {e}")
+            st.stop()
+        
+        # 必要な列の存在確認
+        required_columns = ["id", "質問", "回答"]
+        if not all(col in df.columns for col in required_columns):
+            st.error(f"必須列が不足しています: {required_columns}")
+        else:
+            # キーワード列の検出（動的に対応）
+            keyword_columns = []
+            for col in df.columns:
+                # カテゴリ名で終わる列を検出（例: ハウス1, サイン2, など）
+                if any(col.endswith(str(i)) for i in range(1, 5)):
+                    for cat in ["ハウス", "サイン", "天体", "エレメント", "MP軸", "タロット"]:
+                        if col.startswith(cat):
+                            keyword_columns.append(col)
+                            break
             
-            # 必要な列の存在確認
-            required_columns = ["id", "質問", "回答"]
-            if not all(col in df.columns for col in required_columns):
-                st.error(f"必須列が不足しています: {required_columns}")
-            else:
-                # キーワード列の検出（動的に対応）
-                keyword_columns = []
-                for col in df.columns:
-                    # カテゴリ名で終わる列を検出（例: ハウス1, サイン2, など）
-                    if any(col.endswith(str(i)) for i in range(1, 5)):
-                        for cat in ["ハウス", "サイン", "天体", "エレメント", "MP軸", "タロット"]:
-                            if col.startswith(cat):
-                                keyword_columns.append(col)
-                                break
+            st.success(f"✅ {len(df)}件のデータを読み込みました")
+            st.write(f"検出されたキーワード列: {keyword_columns}")
+            
+            # プレビュー表示
+            with st.expander("データプレビュー", expanded=False):
+                st.dataframe(df.head())
+            
+            # 一括処理ボタン
+            with st.container():
+                st.header("🚀 一括処理")
                 
-                st.success(f"✅ {len(df)}件のデータを読み込みました")
-                st.write(f"検出されたキーワード列: {keyword_columns}")
+                if len(df) > 20:
+                    st.warning(f"⚠️ 大量のデータ（{len(df)}件）の一括処理には時間がかかります")
                 
-                # プレビュー表示
-                with st.expander("データプレビュー", expanded=False):
-                    st.dataframe(df.head())
+                # 一括校正結果がある場合はメッセージ表示
+                if 'batch_results_df' in st.session_state:
+                    st.info("ℹ️ 一括校正済みです。下記の低スコアデータ総合校正に進んでください")
                 
-                # 一括処理ボタン
-                with st.container():
-                    st.header("🚀 一括処理")
-                    
-                    if len(df) > 20:
-                        st.warning(f"⚠️ 大量のデータ（{len(df)}件）の一括処理には時間がかかります")
-                    
-                    # 一括校正結果がある場合はメッセージ表示
-                    if 'batch_results_df' in st.session_state:
-                        st.info("ℹ️ 一括校正済みです。下記の低スコアデータ総合校正に進んでください")
-                    
-                    if st.button("🎯 全データを一括校正", type="secondary", disabled='batch_results_df' in st.session_state):
+                if st.button("🎯 全データを一括校正", type="secondary", disabled='batch_results_df' in st.session_state):
                         # 結果を保存するための列を追加（既存の列がある場合は上書き）
                         if 'トンマナスコア' not in df.columns:
                             df['トンマナスコア'] = 0
@@ -1821,6 +1824,3 @@ else:  # 一括処理モード
                     mime="text/csv",
                     use_container_width=True
                 )
-        
-        except Exception as e:
-            st.error(f"CSVファイルの読み込みエラー: {e}")
