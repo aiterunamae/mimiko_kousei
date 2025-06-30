@@ -1587,167 +1587,167 @@ else:  # 一括処理モード
                         
                         # 結果をセッションに保存
                         st.session_state['batch_results_df'] = df.copy()
-                    
-                    # 一括校正結果がある場合のみ表示
-                    if 'batch_results_df' in st.session_state:
-                        df = st.session_state['batch_results_df']
-                        
-                        # リセットボタン
-                        col_reset1, col_reset2, col_reset3 = st.columns([1, 2, 1])
-                        with col_reset2:
-                            if st.button("🔄 一括校正結果をリセット", type="secondary", use_container_width=True):
-                                del st.session_state['batch_results_df']
-                                if 'batch_comprehensive_df' in st.session_state:
-                                    del st.session_state['batch_comprehensive_df']
-                                st.rerun()
-                        
-                        # 結果表示
-                        st.subheader("📊 校正結果サマリー")
-                        
-                        # スコアサマリーをカード形式で表示
-                        col1, col2, col3, col4 = st.columns(4)
-                        
-                        with col1:
-                            if st.session_state.get('enable_tonmana', True):
-                                avg_tonmana = df['トンマナスコア'].mean()
-                                st.metric("平均トンマナスコア", f"{avg_tonmana:.2f}/5")
-                            else:
-                                st.metric("平均トンマナスコア", "OFF")
                 
-            with col2:
-                if st.session_state.get('enable_japanese', False):
-                    avg_japanese = df['日本語スコア'].mean()
-                    st.metric("平均日本語スコア", f"{avg_japanese:.2f}/5")
-                else:
-                    st.metric("平均日本語スコア", "OFF")
+                # 一括校正結果がある場合のみ表示
+                if 'batch_results_df' in st.session_state:
+                    df = st.session_state['batch_results_df']
+                    
+                    # リセットボタン
+                    col_reset1, col_reset2, col_reset3 = st.columns([1, 2, 1])
+                    with col_reset2:
+                        if st.button("🔄 一括校正結果をリセット", type="secondary", use_container_width=True):
+                            del st.session_state['batch_results_df']
+                            if 'batch_comprehensive_df' in st.session_state:
+                                del st.session_state['batch_comprehensive_df']
+                            st.rerun()
+                    
+                    # 結果表示
+                    st.subheader("📊 校正結果サマリー")
+                    
+                    # スコアサマリーをカード形式で表示
+                    col1, col2, col3, col4 = st.columns(4)
+                    
+                    with col1:
+                        if st.session_state.get('enable_tonmana', True):
+                            avg_tonmana = df['トンマナスコア'].mean()
+                            st.metric("平均トンマナスコア", f"{avg_tonmana:.2f}/5")
+                        else:
+                            st.metric("平均トンマナスコア", "OFF")
+                    
+                    with col2:
+                        if st.session_state.get('enable_japanese', False):
+                            avg_japanese = df['日本語スコア'].mean()
+                            st.metric("平均日本語スコア", f"{avg_japanese:.2f}/5")
+                        else:
+                            st.metric("平均日本語スコア", "OFF")
+                    
+                    with col3:
+                        if st.session_state.get('enable_logic', True):
+                            avg_logic = df['ロジックスコア'].mean()
+                            st.metric("平均ロジックスコア", f"{avg_logic:.2f}/5")
+                        else:
+                            st.metric("平均ロジックスコア", "OFF")
+        
+                    with col4:
+                        avg_total = df['総合スコア'].mean()
+                        # 動的に最大スコアを表示
+                        enabled_count = sum([
+                            st.session_state.get('enable_tonmana', True),
+                            st.session_state.get('enable_japanese', False),
+                            st.session_state.get('enable_logic', True)
+                        ])
+                        max_score = enabled_count * 5
+                        st.metric("平均総合スコア", f"{avg_total:.2f}/{max_score}")
+                        
+                    # 結果プレビュー
+                    with st.expander("📊 結果プレビュー", expanded=True):
+                        # スコア部分と改善点を分けて表示
+                        st.markdown("**スコア一覧**")
+                        score_df = df[['id', '質問', 'トンマナスコア', '日本語スコア', 'ロジックスコア', '総合スコア']].head(10)
+                    
+                        # スコアに応じて色付け
+                        # 動的に闾値を設定
+                        enabled_count = sum([
+                            st.session_state.get('enable_tonmana', True),
+                            st.session_state.get('enable_japanese', False),
+                            st.session_state.get('enable_logic', True)
+                        ])
+                        max_total_score = enabled_count * 5
+                    
+                        # 個別スコアの色付け（ONの校正のみ）
+                        subset_cols = []
+                        if st.session_state.get('enable_tonmana', True):
+                            subset_cols.append('トンマナスコア')
+                        if st.session_state.get('enable_japanese', False):
+                            subset_cols.append('日本語スコア')
+                        if st.session_state.get('enable_logic', True):
+                            subset_cols.append('ロジックスコア')
+                    
+                        styled_df = score_df.style
+                        if subset_cols:
+                            styled_df = styled_df.applymap(
+                                lambda x: 'background-color: #e8f5e9' if isinstance(x, (int, float)) and x >= 4 else 
+                                         'background-color: #fff3e0' if isinstance(x, (int, float)) and x >= 2 else 
+                                         'background-color: #ffebee' if isinstance(x, (int, float)) and x < 2 else '',
+                                subset=subset_cols
+                            )
+                    
+                        # 総合スコアの色付け（動的闾値）
+                        good_threshold = max_total_score * 0.8  # 80%以上
+                        fair_threshold = max_total_score * 0.6  # 60%以上
+                        
+                        styled_df = styled_df.applymap(
+                            lambda x: 'background-color: #e8f5e9' if isinstance(x, (int, float)) and x >= good_threshold else 
+                                     'background-color: #fff3e0' if isinstance(x, (int, float)) and x >= fair_threshold else 
+                                     'background-color: #ffebee' if isinstance(x, (int, float)) and x < fair_threshold else '',
+                            subset=['総合スコア']
+                        )
+                        st.dataframe(styled_df, use_container_width=True)
+                    
+                        # 改善点は別途表示
+                        if df['改善点'].any():
+                            st.markdown("**改善点一覧**")
+                            improvements_df = df[df['改善点'] != ''][['id', '質問', '改善点']].head(10)
+                            st.dataframe(improvements_df, use_container_width=True)
+                    
+                    # 低スコアデータの総合校正
+                    st.divider()
+                    st.subheader("🎯 低スコアデータの一括総合校正")
+                    
+                    # スコアフィルタリング設定
+                    col_filter1, col_filter2 = st.columns([2, 3])
             
-            with col3:
-                if st.session_state.get('enable_logic', True):
-                    avg_logic = df['ロジックスコア'].mean()
-                    st.metric("平均ロジックスコア", f"{avg_logic:.2f}/5")
-                else:
-                    st.metric("平均ロジックスコア", "OFF")
-    
-            with col4:
-                avg_total = df['総合スコア'].mean()
-                # 動的に最大スコアを表示
-                enabled_count = sum([
-                    st.session_state.get('enable_tonmana', True),
-                    st.session_state.get('enable_japanese', False),
-                    st.session_state.get('enable_logic', True)
-                ])
-                max_score = enabled_count * 5
-                st.metric("平均総合スコア", f"{avg_total:.2f}/{max_score}")
-                
-            # 結果プレビュー
-            with st.expander("📊 結果プレビュー", expanded=True):
-                    # スコア部分と改善点を分けて表示
-                    st.markdown("**スコア一覧**")
-                    score_df = df[['id', '質問', 'トンマナスコア', '日本語スコア', 'ロジックスコア', '総合スコア']].head(10)
-                    
-                    # スコアに応じて色付け
-                    # 動的に闾値を設定
+                    # 最大スコアを動的に計算（ONになっている校正の数×5）
                     enabled_count = sum([
                         st.session_state.get('enable_tonmana', True),
                         st.session_state.get('enable_japanese', False),
                         st.session_state.get('enable_logic', True)
                     ])
-                    max_total_score = enabled_count * 5
+                    max_score = enabled_count * 5
+                    default_threshold = int(max_score * 0.6)  # デフォルトは最大スコアの60%
                     
-                    # 個別スコアの色付け（ONの校正のみ）
-                    subset_cols = []
-                    if st.session_state.get('enable_tonmana', True):
-                        subset_cols.append('トンマナスコア')
-                    if st.session_state.get('enable_japanese', False):
-                        subset_cols.append('日本語スコア')
-                    if st.session_state.get('enable_logic', True):
-                        subset_cols.append('ロジックスコア')
-                    
-                    styled_df = score_df.style
-                    if subset_cols:
-                        styled_df = styled_df.applymap(
-                            lambda x: 'background-color: #e8f5e9' if isinstance(x, (int, float)) and x >= 4 else 
-                                     'background-color: #fff3e0' if isinstance(x, (int, float)) and x >= 2 else 
-                                     'background-color: #ffebee' if isinstance(x, (int, float)) and x < 2 else '',
-                            subset=subset_cols
+                    with col_filter1:
+                        score_threshold = st.number_input(
+                            "総合スコアが以下のデータを対象にする",
+                            min_value=0,
+                            max_value=max_score,
+                            value=min(default_threshold, max_score),
+                            step=1,
+                            help=f"総合スコアがこの値以下のデータを総合校正します（最大: {max_score}点）"
                         )
+                        
+                    # 対象データのフィルタリング
+                    low_score_df = df[df['総合スコア'] <= score_threshold]
                     
-                    # 総合スコアの色付け（動的闾値）
-                    good_threshold = max_total_score * 0.8  # 80%以上
-                    fair_threshold = max_total_score * 0.6  # 60%以上
+                    with col_filter2:
+                        st.info(f"📊 対象データ: {len(low_score_df)}件 / 全{len(df)}件")
                     
-                    styled_df = styled_df.applymap(
-                        lambda x: 'background-color: #e8f5e9' if isinstance(x, (int, float)) and x >= good_threshold else 
-                                 'background-color: #fff3e0' if isinstance(x, (int, float)) and x >= fair_threshold else 
-                                 'background-color: #ffebee' if isinstance(x, (int, float)) and x < fair_threshold else '',
-                        subset=['総合スコア']
-                    )
-                    st.dataframe(styled_df, use_container_width=True)
+                    if len(low_score_df) > 0:
+                        # 対象データのプレビュー
+                        with st.expander("🔍 対象データのプレビュー", expanded=False):
+                            preview_df = low_score_df[['id', '質問', 'トンマナスコア', '日本語スコア', 'ロジックスコア', '総合スコア']].head(10)
+                            st.dataframe(preview_df, use_container_width=True)
                     
-                    # 改善点は別途表示
-                    if df['改善点'].any():
-                        st.markdown("**改善点一覧**")
-                        improvements_df = df[df['改善点'] != ''][['id', '質問', '改善点']].head(10)
-                        st.dataframe(improvements_df, use_container_width=True)
-                
-            # 低スコアデータの総合校正
-            st.divider()
-            st.subheader("🎯 低スコアデータの一括総合校正")
-            
-            # スコアフィルタリング設定
-            col_filter1, col_filter2 = st.columns([2, 3])
-            
-            # 最大スコアを動的に計算（ONになっている校正の数×5）
-            enabled_count = sum([
-                st.session_state.get('enable_tonmana', True),
-                st.session_state.get('enable_japanese', False),
-                st.session_state.get('enable_logic', True)
-            ])
-            max_score = enabled_count * 5
-            default_threshold = int(max_score * 0.6)  # デフォルトは最大スコアの60%
-            
-            with col_filter1:
-                score_threshold = st.number_input(
-                    "総合スコアが以下のデータを対象にする",
-                    min_value=0,
-                    max_value=max_score,
-                    value=min(default_threshold, max_score),
-                    step=1,
-                    help=f"総合スコアがこの値以下のデータを総合校正します（最大: {max_score}点）"
-                )
-                
-            # 対象データのフィルタリング
-            low_score_df = df[df['総合スコア'] <= score_threshold]
-            
-            with col_filter2:
-                    st.info(f"📊 対象データ: {len(low_score_df)}件 / 全{len(df)}件")
-                
-            if len(low_score_df) > 0:
-                    # 対象データのプレビュー
-                    with st.expander("🔍 対象データのプレビュー", expanded=False):
-                        preview_df = low_score_df[['id', '質問', 'トンマナスコア', '日本語スコア', 'ロジックスコア', '総合スコア']].head(10)
-                        st.dataframe(preview_df, use_container_width=True)
-                    
-                    # 総合校正実行ボタン
-                    batch_key = f"batch_comprehensive_{score_threshold}"
-                    if st.button(f"🚀 {len(low_score_df)}件のデータを総合校正", type="primary", key=batch_key):
-                        with st.spinner("総合校正を実行中..."):
-                            # 設定の準備
-                            current_project_id = vertex_ai_project_id
-                            current_location = vertex_ai_location
-                            current_service_account = gcp_service_account
-                            
-                            comprehensive_progress = st.progress(0)
-                            comprehensive_status = st.empty()
-                            
-                            for idx, (index, row) in enumerate(low_score_df.iterrows()):
-                                comprehensive_status.text(f"総合校正中: {idx + 1}/{len(low_score_df)}")
+                        # 総合校正実行ボタン
+                        batch_key = f"batch_comprehensive_{score_threshold}"
+                        if st.button(f"🚀 {len(low_score_df)}件のデータを総合校正", type="primary", key=batch_key):
+                            with st.spinner("総合校正を実行中..."):
+                                # 設定の準備
+                                current_project_id = vertex_ai_project_id
+                                current_location = vertex_ai_location
+                                current_service_account = gcp_service_account
                                 
-                                # 各校正の改善点を取得
-                                improvements_text = row['改善点']
-                                if improvements_text:
-                                    # 総合校正メッセージ作成
-                                    comprehensive_message = f"""AI占い師の回答:
+                                comprehensive_progress = st.progress(0)
+                                comprehensive_status = st.empty()
+                                
+                                for idx, (index, row) in enumerate(low_score_df.iterrows()):
+                                    comprehensive_status.text(f"総合校正中: {idx + 1}/{len(low_score_df)}")
+                                    
+                                    # 各校正の改善点を取得
+                                    improvements_text = row['改善点']
+                                    if improvements_text:
+                                        # 総合校正メッセージ作成
+                                        comprehensive_message = f"""AI占い師の回答:
 {row['回答']}
 
 使用されたキーワード:
@@ -1761,66 +1761,66 @@ else:  # 一括処理モード
 選択された改善点:
 {improvements_text}"""
                                     
-                                    # 総合校正実行
-                                    comprehensive_result = call_gemini(
-                                        comprehensive_prompt,
-                                        comprehensive_message,
-                                        selected_model,
-                                        current_project_id,
-                                        current_location,
-                                        current_service_account,
-                                        max_tokens=4000,
-                                        thinking_budget=thinking_budget
-                                    )
+                                        # 総合校正実行
+                                        comprehensive_result = call_gemini(
+                                            comprehensive_prompt,
+                                            comprehensive_message,
+                                            selected_model,
+                                            current_project_id,
+                                            current_location,
+                                            current_service_account,
+                                            max_tokens=4000,
+                                            thinking_budget=thinking_budget
+                                        )
+                                        
+                                        if comprehensive_result:
+                                            df.at[index, '総合校正結果'] = comprehensive_result
                                     
-                                    if comprehensive_result:
-                                        df.at[index, '総合校正結果'] = comprehensive_result
+                                    comprehensive_progress.progress((idx + 1) / len(low_score_df))
                                 
-                                comprehensive_progress.progress((idx + 1) / len(low_score_df))
-                            
-                            comprehensive_status.text("総合校正完了!")
-                            st.success(f"✅ {len(low_score_df)}件の総合校正が完了しました")
-                            
-                            # 結果をセッションに保存
-                            st.session_state['batch_comprehensive_df'] = df.copy()
-                
-            else:
-                st.info(f"総合スコア{score_threshold}点以下のデータはありません")
-                
-            # 総合校正結果の表示
-            if 'batch_comprehensive_df' in st.session_state:
-                df_comp = st.session_state['batch_comprehensive_df']
-                comprehensive_completed = df_comp[df_comp['総合校正結果'] != '']
-                
-                if len(comprehensive_completed) > 0:
-                    st.divider()
-                    st.subheader("📝 総合校正結果")
-                    with st.expander(f"総合校正済み: {len(comprehensive_completed)}件", expanded=False):
-                        for idx, row in comprehensive_completed.iterrows():
-                            st.markdown(f"**ID: {row['id']}**")
-                            col1, col2 = st.columns(2)
-                            with col1:
-                                st.markdown("🔸 **元の回答:**")
-                                st.text_area("", value=row['回答'], height=150, disabled=True, key=f"orig_{idx}")
-                            with col2:
-                                st.markdown("✨ **校正後:**")
-                                st.text_area("", value=row['総合校正結果'], height=150, disabled=True, key=f"comp_{idx}")
+                                comprehensive_status.text("総合校正完了!")
+                                st.success(f"✅ {len(low_score_df)}件の総合校正が完了しました")
+                                
+                                # 結果をセッションに保存
+                                st.session_state['batch_comprehensive_df'] = df.copy()
+                    
+                    else:
+                        st.info(f"総合スコア{score_threshold}点以下のデータはありません")
+                    
+                    # 総合校正結果の表示
+                    if 'batch_comprehensive_df' in st.session_state:
+                        df_comp = st.session_state['batch_comprehensive_df']
+                        comprehensive_completed = df_comp[df_comp['総合校正結果'] != '']
+                        
+                        if len(comprehensive_completed) > 0:
                             st.divider()
-                
-            # CSV出力
-            st.divider()
-            output_buffer = io.StringIO()
-            # batch_comprehensive_dfがある場合はそれを使用
-            export_df = st.session_state.get('batch_comprehensive_df', df)
-            export_df.to_csv(output_buffer, index=False, encoding='utf-8-sig')
-            
-            # ダウンロードボタンを中央に配置
-            col_dl1, col_dl2, col_dl3 = st.columns([1, 2, 1])
-            with col_dl2:
-                st.download_button(
-                    label="📥 校正結果をCSVでダウンロード",
-                    data=output_buffer.getvalue(),
-                    file_name=f"mimiko_correction_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                    mime="text/csv",
-                    use_container_width=True
-                )
+                            st.subheader("📝 総合校正結果")
+                            with st.expander(f"総合校正済み: {len(comprehensive_completed)}件", expanded=False):
+                                for idx, row in comprehensive_completed.iterrows():
+                                    st.markdown(f"**ID: {row['id']}**")
+                                    col1, col2 = st.columns(2)
+                                    with col1:
+                                        st.markdown("🔸 **元の回答:**")
+                                        st.text_area("", value=row['回答'], height=150, disabled=True, key=f"orig_{idx}")
+                                    with col2:
+                                        st.markdown("✨ **校正後:**")
+                                        st.text_area("", value=row['総合校正結果'], height=150, disabled=True, key=f"comp_{idx}")
+                                    st.divider()
+                    
+                    # CSV出力
+                    st.divider()
+                    output_buffer = io.StringIO()
+                    # batch_comprehensive_dfがある場合はそれを使用
+                    export_df = st.session_state.get('batch_comprehensive_df', df)
+                    export_df.to_csv(output_buffer, index=False, encoding='utf-8-sig')
+                    
+                    # ダウンロードボタンを中央に配置
+                    col_dl1, col_dl2, col_dl3 = st.columns([1, 2, 1])
+                    with col_dl2:
+                        st.download_button(
+                            label="📥 校正結果をCSVでダウンロード",
+                            data=output_buffer.getvalue(),
+                            file_name=f"mimiko_correction_results_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                            mime="text/csv",
+                            use_container_width=True
+                        )
