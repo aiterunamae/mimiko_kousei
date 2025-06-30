@@ -1431,13 +1431,19 @@ else:  # 一括処理モード
                         st.info("ℹ️ 一括校正済みです。下記の低スコアデータ総合校正に進んでください")
                     
                     if st.button("🎯 全データを一括校正", type="secondary", disabled='batch_results_df' in st.session_state):
-                        # 結果を保存するための列を追加
-                        df['トンマナスコア'] = 0
-                        df['日本語スコア'] = 0
-                        df['ロジックスコア'] = 0
-                        df['総合スコア'] = 0
-                        df['改善点'] = ""
-                        df['総合校正結果'] = ""
+                        # 結果を保存するための列を追加（既存の列がある場合は上書き）
+                        if 'トンマナスコア' not in df.columns:
+                            df['トンマナスコア'] = 0
+                        if '日本語スコア' not in df.columns:
+                            df['日本語スコア'] = 0
+                        if 'ロジックスコア' not in df.columns:
+                            df['ロジックスコア'] = 0
+                        if '総合スコア' not in df.columns:
+                            df['総合スコア'] = 0
+                        if '改善点' not in df.columns:
+                            df['改善点'] = ""
+                        if '総合校正結果' not in df.columns:
+                            df['総合校正結果'] = ""
                         
                         # 設定の準備
                         current_project_id = vertex_ai_project_id
