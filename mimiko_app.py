@@ -27,16 +27,16 @@ def check_password():
         if hasattr(st, "secrets"):
             try:
                 # 管理者認証
-                if (username == st.secrets["admin_username"] and 
-                    password == st.secrets["admin_password"]):
+                if (username == st.secrets["auth"]["admin_username"] and 
+                    password == st.secrets["auth"]["admin_password"]):
                     st.session_state["password_correct"] = True
                     st.session_state["user_role"] = "admin"
                     del st.session_state["password"]  # パスワードを削除
                     del st.session_state["username"]
                     return
                 # 一般ユーザー認証
-                elif (username == st.secrets["user_username"] and 
-                      password == st.secrets["user_password"]):
+                elif (username == st.secrets["auth"]["user_username"] and 
+                      password == st.secrets["auth"]["user_password"]):
                     st.session_state["password_correct"] = True
                     st.session_state["user_role"] = "user"
                     del st.session_state["password"]  # パスワードを削除
