@@ -1545,16 +1545,25 @@ if 'csv_data' in st.session_state:
             col1, col2, col3, col4 = st.columns(4)
             
             with col1:
-                avg_tonmana = df['トンマナスコア'].mean()
-                st.metric("平均トンマナスコア", f"{avg_tonmana:.2f}/5")
+                if st.session_state.get('enable_tonmana', True):
+                    avg_tonmana = df['トンマナスコア'].mean()
+                    st.metric("平均トンマナスコア", f"{avg_tonmana:.2f}/5")
+                else:
+                    st.metric("平均トンマナスコア", "OFF")
                 
             with col2:
-                avg_japanese = df['日本語スコア'].mean()
-                st.metric("平均日本語スコア", f"{avg_japanese:.2f}/5")
+                if st.session_state.get('enable_japanese', False):
+                    avg_japanese = df['日本語スコア'].mean()
+                    st.metric("平均日本語スコア", f"{avg_japanese:.2f}/5")
+                else:
+                    st.metric("平均日本語スコア", "OFF")
             
             with col3:
-                avg_logic = df['ロジックスコア'].mean()
-                st.metric("平均ロジックスコア", f"{avg_logic:.2f}/5")
+                if st.session_state.get('enable_logic', True):
+                    avg_logic = df['ロジックスコア'].mean()
+                    st.metric("平均ロジックスコア", f"{avg_logic:.2f}/5")
+                else:
+                    st.metric("平均ロジックスコア", "OFF")
     
             with col4:
                 avg_total = df['総合スコア'].mean()
@@ -1574,15 +1583,40 @@ if 'csv_data' in st.session_state:
                     score_df = df[['id', '質問', 'トンマナスコア', '日本語スコア', 'ロジックスコア', '総合スコア']].head(10)
                     
                     # スコアに応じて色付け
-                    styled_df = score_df.style.applymap(
-                        lambda x: 'background-color: #e8f5e9' if isinstance(x, (int, float)) and x >= 4 else 
-                                 'background-color: #fff3e0' if isinstance(x, (int, float)) and x >= 2 else 
-                                 'background-color: #ffebee' if isinstance(x, (int, float)) and x < 2 else '',
-                        subset=['トンマナスコア', '日本語スコア', 'ロジックスコア']
-                    ).applymap(
-                        lambda x: 'background-color: #e8f5e9' if isinstance(x, (int, float)) and x >= 12 else 
-                                 'background-color: #fff3e0' if isinstance(x, (int, float)) and x >= 9 else 
-                                 'background-color: #ffebee' if isinstance(x, (int, float)) and x < 9 else '',
+                    # 動的に闾値を設定
+                    enabled_count = sum([
+                        st.session_state.get('enable_tonmana', True),
+                        st.session_state.get('enable_japanese', False),
+                        st.session_state.get('enable_logic', True)
+                    ])
+                    max_total_score = enabled_count * 5
+                    
+                    # 個別スコアの色付け（ONの校正のみ）
+                    subset_cols = []
+                    if st.session_state.get('enable_tonmana', True):
+                        subset_cols.append('トンマナスコア')
+                    if st.session_state.get('enable_japanese', False):
+                        subset_cols.append('日本語スコア')
+                    if st.session_state.get('enable_logic', True):
+                        subset_cols.append('ロジックスコア')
+                    
+                    styled_df = score_df.style
+                    if subset_cols:
+                        styled_df = styled_df.applymap(
+                            lambda x: 'background-color: #e8f5e9' if isinstance(x, (int, float)) and x >= 4 else 
+                                     'background-color: #fff3e0' if isinstance(x, (int, float)) and x >= 2 else 
+                                     'background-color: #ffebee' if isinstance(x, (int, float)) and x < 2 else '',
+                            subset=subset_cols
+                        )
+                    
+                    # 総合スコアの色付け（動的闾値）
+                    good_threshold = max_total_score * 0.8  # 80%以上
+                    fair_threshold = max_total_score * 0.6  # 60%以上
+                    
+                    styled_df = styled_df.applymap(
+                        lambda x: 'background-color: #e8f5e9' if isinstance(x, (int, float)) and x >= good_threshold else 
+                                 'background-color: #fff3e0' if isinstance(x, (int, float)) and x >= fair_threshold else 
+                                 'background-color: #ffebee' if isinstance(x, (int, float)) and x < fair_threshold else '',
                         subset=['総合スコア']
                     )
                     st.dataframe(styled_df, use_container_width=True)
