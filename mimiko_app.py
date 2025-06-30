@@ -1431,42 +1431,42 @@ else:  # 一括処理モード
                         st.info("ℹ️ 一括校正済みです。下記の低スコアデータ総合校正に進んでください")
                     
                     if st.button("🎯 全データを一括校正", type="secondary", disabled='batch_results_df' in st.session_state):
-                # 結果を保存するための列を追加
-                df['トンマナスコア'] = 0
-                df['日本語スコア'] = 0
-                df['ロジックスコア'] = 0
-                df['総合スコア'] = 0
-                df['改善点'] = ""
-                df['総合校正結果'] = ""
-                
-                # 設定の準備
-                current_project_id = vertex_ai_project_id
-                current_location = vertex_ai_location
-                current_service_account = gcp_service_account
-                
-                # プログレスバー
-                progress_bar = st.progress(0)
-                status_text = st.empty()
-                
-                # 各行を処理
-                for index, row in df.iterrows():
-                    status_text.text(f"処理中: {index + 1}/{len(df)}")
+                        # 結果を保存するための列を追加
+                        df['トンマナスコア'] = 0
+                        df['日本語スコア'] = 0
+                        df['ロジックスコア'] = 0
+                        df['総合スコア'] = 0
+                        df['改善点'] = ""
+                        df['総合校正結果'] = ""
+                        
+                        # 設定の準備
+                        current_project_id = vertex_ai_project_id
+                        current_location = vertex_ai_location
+                        current_service_account = gcp_service_account
+                        
+                        # プログレスバー
+                        progress_bar = st.progress(0)
+                        status_text = st.empty()
+                        
+                        # 各行を処理
+                        for index, row in df.iterrows():
+                            status_text.text(f"処理中: {index + 1}/{len(df)}")
+                            
+                            # 質問と回答を取得
+                            current_question = row['質問']
+                            current_answer = row['回答']
                     
-                    # 質問と回答を取得
-                    current_question = row['質問']
-                    current_answer = row['回答']
-            
-                    # キーワードを整理
-                    keywords = []
-                    for col in keyword_columns:
-                        if pd.notna(row[col]):
-                            # カテゴリ名を抽出（例: "ハウス1" -> "ハウス"）
-                            category = ''.join([c for c in col if not c.isdigit()])
-                            keywords.append(f"{category}: {row[col]}")
-            
-                    # 1. トンマナ校正（設定のON/OFFを確認）
-                    if st.session_state.get('enable_tonmana', True):
-                        tonmana_message = f"""##QUESTION##
+                            # キーワードを整理
+                            keywords = []
+                            for col in keyword_columns:
+                                if pd.notna(row[col]):
+                                    # カテゴリ名を抽出（例: "ハウス1" -> "ハウス"）
+                                    category = ''.join([c for c in col if not c.isdigit()])
+                                    keywords.append(f"{category}: {row[col]}")
+                    
+                            # 1. トンマナ校正（設定のON/OFFを確認）
+                            if st.session_state.get('enable_tonmana', True):
+                                tonmana_message = f"""##QUESTION##
 {current_question}
 
 ##KEYWORDS##
@@ -1475,7 +1475,7 @@ else:  # 一括処理モード
 ##ANSWER_CAND##
 {current_answer}
 """
-                        tonmana_result = call_gemini(
+                                tonmana_result = call_gemini(
                             tonmana_prompt, 
                             tonmana_message,
                             selected_model,
@@ -1483,21 +1483,21 @@ else:  # 一括処理モード
                             current_location,
                             current_service_account,
                             thinking_budget=thinking_budget
-                        )
-                        
-                        tonmana_json = parse_json_response(tonmana_result) if tonmana_result else None
-                        if tonmana_json:
-                            df.at[index, 'トンマナスコア'] = tonmana_json.get('score', 0)
-                            improvements = tonmana_json.get('improvements', [])
-                            if improvements:
-                                df.at[index, '改善点'] += f"【トンマナ】{', '.join(improvements)}\n"
-                    else:
-                        # OFFの場合はスコアを計算に含めない
-                        df.at[index, 'トンマナスコア'] = 0
-            
-                    # 2. 日本語校正
-                    if st.session_state.get('enable_japanese', False):
-                        japanese_result = call_gemini(
+                                )
+                                
+                                tonmana_json = parse_json_response(tonmana_result) if tonmana_result else None
+                                if tonmana_json:
+                                    df.at[index, 'トンマナスコア'] = tonmana_json.get('score', 0)
+                                    improvements = tonmana_json.get('improvements', [])
+                                    if improvements:
+                                        df.at[index, '改善点'] += f"【トンマナ】{', '.join(improvements)}\n"
+                            else:
+                                # OFFの場合はスコアを計算に含めない
+                                df.at[index, 'トンマナスコア'] = 0
+                    
+                            # 2. 日本語校正
+                            if st.session_state.get('enable_japanese', False):
+                                japanese_result = call_gemini(
                             japanese_prompt,
                             current_answer,
                             selected_model,
@@ -1505,38 +1505,38 @@ else:  # 一括処理モード
                             current_location,
                             current_service_account,
                             thinking_budget=thinking_budget
-                        )
-                        
-                        japanese_json = parse_json_response(japanese_result) if japanese_result else None
-                        if japanese_json:
-                            df.at[index, '日本語スコア'] = japanese_json.get('score', 0)
-                            improvements = japanese_json.get('improvements', [])
-                            if improvements:
-                                df.at[index, '改善点'] += f"【日本語】{', '.join(improvements)}\n"
-                    else:
-                        # OFFの場合はスコアを計算に含めない
-                        df.at[index, '日本語スコア'] = 0
-            
-                    # 3. ロジック校正
-                    if st.session_state.get('enable_logic', True):
-                        # キーワードの詳細情報を取得
-                        keyword_details = get_keyword_details(keywords)
-                        
-                        # 元キーワードとアレンジキーワードを取得
-                        original_keywords = []
-                        arrange_keywords = []
-                        
-                        # CSVの列から元キーワードとアレンジキーワードを探す
-                        for col in df.columns:
-                            if '元キーワード' in col and pd.notna(row[col]):
-                                original_keywords.append(row[col])
-                            elif 'アレンジキーワード' in col and pd.notna(row[col]):
-                                arrange_keywords.append(row[col])
-                        
-                        # キーワード詳細情報をJSON形式で整形
-                        keyword_info = json.dumps(keyword_details, ensure_ascii=False, indent=2)
-                        
-                        logic_message = f"""質問: {current_question}
+                                )
+                                
+                                japanese_json = parse_json_response(japanese_result) if japanese_result else None
+                                if japanese_json:
+                                    df.at[index, '日本語スコア'] = japanese_json.get('score', 0)
+                                    improvements = japanese_json.get('improvements', [])
+                                    if improvements:
+                                        df.at[index, '改善点'] += f"【日本語】{', '.join(improvements)}\n"
+                            else:
+                                # OFFの場合はスコアを計算に含めない
+                                df.at[index, '日本語スコア'] = 0
+                    
+                            # 3. ロジック校正
+                            if st.session_state.get('enable_logic', True):
+                                # キーワードの詳細情報を取得
+                                keyword_details = get_keyword_details(keywords)
+                                
+                                # 元キーワードとアレンジキーワードを取得
+                                original_keywords = []
+                                arrange_keywords = []
+                                
+                                # CSVの列から元キーワードとアレンジキーワードを探す
+                                for col in df.columns:
+                                    if '元キーワード' in col and pd.notna(row[col]):
+                                        original_keywords.append(row[col])
+                                    elif 'アレンジキーワード' in col and pd.notna(row[col]):
+                                        arrange_keywords.append(row[col])
+                                
+                                # キーワード詳細情報をJSON形式で整形
+                                keyword_info = json.dumps(keyword_details, ensure_ascii=False, indent=2)
+                                
+                                logic_message = f"""質問: {current_question}
 
 使用キーワード:
 {keyword_info}
@@ -1547,7 +1547,7 @@ else:  # 一括処理モード
 
 回答: {current_answer}
 """
-                        logic_result = call_gemini(
+                                logic_result = call_gemini(
                             logic_prompt,
                             logic_message,
                             selected_model,
@@ -1555,55 +1555,55 @@ else:  # 一括処理モード
                             current_location,
                             current_service_account,
                             thinking_budget=thinking_budget
-                        )
-                        
-                        logic_json = parse_json_response(logic_result) if logic_result else None
-                        if logic_json:
-                            df.at[index, 'ロジックスコア'] = logic_json.get('score', 0)
-                            improvements = logic_json.get('improvements', [])
-                            if improvements:
-                                df.at[index, '改善点'] += f"【ロジック】{', '.join(improvements)}\n"
-                    else:
-                        # OFFの場合はスコアを計算に含めない
-                        df.at[index, 'ロジックスコア'] = 0
-            
-                    # 総合スコア計算
-                    total_score = df.at[index, 'トンマナスコア'] + df.at[index, '日本語スコア'] + df.at[index, 'ロジックスコア']
-                    df.at[index, '総合スコア'] = total_score
+                                )
+                                
+                                logic_json = parse_json_response(logic_result) if logic_result else None
+                                if logic_json:
+                                    df.at[index, 'ロジックスコア'] = logic_json.get('score', 0)
+                                    improvements = logic_json.get('improvements', [])
+                                    if improvements:
+                                        df.at[index, '改善点'] += f"【ロジック】{', '.join(improvements)}\n"
+                            else:
+                                # OFFの場合はスコアを計算に含めない
+                                df.at[index, 'ロジックスコア'] = 0
                     
-                    # プログレス更新
-                    progress_bar.progress((index + 1) / len(df))
-                
-                status_text.text("処理完了!")
-                
-                # 結果をセッションに保存
-                st.session_state['batch_results_df'] = df.copy()
-                
-        # 一括校正結果がある場合のみ表示
-        if 'batch_results_df' in st.session_state:
-            df = st.session_state['batch_results_df']
-            
-            # リセットボタン
-            col_reset1, col_reset2, col_reset3 = st.columns([1, 2, 1])
-            with col_reset2:
-                if st.button("🔄 一括校正結果をリセット", type="secondary", use_container_width=True):
-                    del st.session_state['batch_results_df']
-                    if 'batch_comprehensive_df' in st.session_state:
-                        del st.session_state['batch_comprehensive_df']
-                    st.rerun()
-            
-            # 結果表示
-            st.subheader("📊 校正結果サマリー")
-            
-            # スコアサマリーをカード形式で表示
-            col1, col2, col3, col4 = st.columns(4)
-            
-            with col1:
-                if st.session_state.get('enable_tonmana', True):
-                    avg_tonmana = df['トンマナスコア'].mean()
-                    st.metric("平均トンマナスコア", f"{avg_tonmana:.2f}/5")
-                else:
-                    st.metric("平均トンマナスコア", "OFF")
+                            # 総合スコア計算
+                            total_score = df.at[index, 'トンマナスコア'] + df.at[index, '日本語スコア'] + df.at[index, 'ロジックスコア']
+                            df.at[index, '総合スコア'] = total_score
+                            
+                            # プログレス更新
+                            progress_bar.progress((index + 1) / len(df))
+                        
+                        status_text.text("処理完了!")
+                        
+                        # 結果をセッションに保存
+                        st.session_state['batch_results_df'] = df.copy()
+                    
+                    # 一括校正結果がある場合のみ表示
+                    if 'batch_results_df' in st.session_state:
+                        df = st.session_state['batch_results_df']
+                        
+                        # リセットボタン
+                        col_reset1, col_reset2, col_reset3 = st.columns([1, 2, 1])
+                        with col_reset2:
+                            if st.button("🔄 一括校正結果をリセット", type="secondary", use_container_width=True):
+                                del st.session_state['batch_results_df']
+                                if 'batch_comprehensive_df' in st.session_state:
+                                    del st.session_state['batch_comprehensive_df']
+                                st.rerun()
+                        
+                        # 結果表示
+                        st.subheader("📊 校正結果サマリー")
+                        
+                        # スコアサマリーをカード形式で表示
+                        col1, col2, col3, col4 = st.columns(4)
+                        
+                        with col1:
+                            if st.session_state.get('enable_tonmana', True):
+                                avg_tonmana = df['トンマナスコア'].mean()
+                                st.metric("平均トンマナスコア", f"{avg_tonmana:.2f}/5")
+                            else:
+                                st.metric("平均トンマナスコア", "OFF")
                 
             with col2:
                 if st.session_state.get('enable_japanese', False):
