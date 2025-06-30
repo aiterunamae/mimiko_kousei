@@ -6,7 +6,6 @@ from pathlib import Path
 from datetime import datetime
 import pandas as pd
 import io
-import hashlib
 
 # ページ設定（認証前に設定）
 st.set_page_config(
@@ -26,9 +25,6 @@ def check_password():
         
         # Secretsから認証情報を取得
         try:
-            # デバッグ用（本番環境では削除すること）
-            # st.write("Debug - Secrets keys:", list(st.secrets.keys()) if hasattr(st, "secrets") else "No secrets")
-            
             # 管理者認証
             if (username == st.secrets["admin_username"] and 
                 password == st.secrets["admin_password"]):
@@ -45,32 +41,12 @@ def check_password():
                 del st.session_state["password"]  # パスワードを削除
                 del st.session_state["username"]
                 return
-        except KeyError as e:
-            # Secretsのキーが見つからない場合
-            # st.warning(f"認証設定が見つかりません: {e}")
+        except KeyError:
+            # Secretsのキーが見つからない場合は何もしない
             pass
-        except Exception as e:
-            # その他のエラー
-            # st.error(f"認証エラー: {e}")
+        except Exception:
+            # その他のエラーも無視
             pass
-            
-        # ローカル環境またはSecrets未設定の場合のフォールバック
-        if username == "admin" and password == "mimiko_admin":
-            st.session_state["password_correct"] = True
-            st.session_state["user_role"] = "admin"
-            if "password" in st.session_state:
-                del st.session_state["password"]
-            if "username" in st.session_state:
-                del st.session_state["username"]
-            return
-        elif username == "user" and password == "mimiko_test":
-            st.session_state["password_correct"] = True
-            st.session_state["user_role"] = "user"
-            if "password" in st.session_state:
-                del st.session_state["password"]
-            if "username" in st.session_state:
-                del st.session_state["username"]
-            return
         
         st.session_state["password_correct"] = False
 
