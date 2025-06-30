@@ -781,10 +781,10 @@ if 'csv_data' in st.session_state:
                             with st.expander("デバッグ情報", expanded=True):
                                 st.code(tonmana_result)
             else:
-                # トンマナ校正がOFFの場合
-                st.session_state[f'tonmana_json_{selected_row_idx}'] = {'score': 5, 'improvements': []}
+                # トンマナ校正がOFFの場合はスコアを計算に含めない
+                st.session_state[f'tonmana_json_{selected_row_idx}'] = {'score': 0, 'improvements': []}
                 st.session_state[f'corrections_{selected_row_idx}']['tonmana'] = {
-                    'score': 5,
+                    'score': 0,
                     'improvements': []
                 }
         
@@ -813,10 +813,10 @@ if 'csv_data' in st.session_state:
                                 'improvements': japanese_json.get('improvements', [])
                             }
             else:
-                # 日本語校正がOFFの場合
-                st.session_state[f'japanese_json_{selected_row_idx}'] = {'score': 5, 'improvements': []}
+                # 日本語校正がOFFの場合はスコアを計算に含めない
+                st.session_state[f'japanese_json_{selected_row_idx}'] = {'score': 0, 'improvements': []}
                 st.session_state[f'corrections_{selected_row_idx}']['japanese'] = {
-                    'score': 5,
+                    'score': 0,
                     'improvements': []
                 }
         
@@ -878,10 +878,10 @@ if 'csv_data' in st.session_state:
                                 'improvements': logic_json.get('improvements', [])
                             }
             else:
-                # ロジック校正がOFFの場合
-                st.session_state[f'logic_json_{selected_row_idx}'] = {'score': 5, 'improvements': []}
+                # ロジック校正がOFFの場合はスコアを計算に含めない
+                st.session_state[f'logic_json_{selected_row_idx}'] = {'score': 0, 'improvements': []}
                 st.session_state[f'corrections_{selected_row_idx}']['logic'] = {
-                    'score': 5,
+                    'score': 0,
                     'improvements': []
                 }
         
@@ -900,7 +900,14 @@ if 'csv_data' in st.session_state:
                     total_score += corrections[correction_type].get('score', 0)
         
         # スコアに応じて色分けしたメッセージ
-        score_percentage = (total_score / 15) * 100
+        # 動的に最大スコアを計算
+        enabled_count = sum([
+            st.session_state.get('enable_tonmana', True),
+            st.session_state.get('enable_japanese', False),
+            st.session_state.get('enable_logic', True)
+        ])
+        max_possible_score = enabled_count * 5
+        score_percentage = (total_score / max_possible_score) * 100 if max_possible_score > 0 else 0
         
         # スコアメッセージをカード形式で表示
         if score_percentage >= 80:
@@ -908,7 +915,7 @@ if 'csv_data' in st.session_state:
             <div style='background: linear-gradient(135deg, #4caf50 0%, #8bc34a 100%); 
                         padding: 20px; border-radius: 15px; text-align: center; color: white;
                         box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);'>
-                <h2 style='margin: 0; color: white;'>🎉 総合スコア: {total_score}/15点</h2>
+                <h2 style='margin: 0; color: white;'>🎉 総合スコア: {total_score}/{max_possible_score}点</h2>
             </div>
             """, unsafe_allow_html=True)
         elif score_percentage >= 60:
@@ -916,7 +923,7 @@ if 'csv_data' in st.session_state:
             <div style='background: linear-gradient(135deg, #2196f3 0%, #64b5f6 100%); 
                         padding: 20px; border-radius: 15px; text-align: center; color: white;
                         box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3);'>
-                <h2 style='margin: 0; color: white;'>📊 総合スコア: {total_score}/15点</h2>
+                <h2 style='margin: 0; color: white;'>📊 総合スコア: {total_score}/{max_possible_score}点</h2>
             </div>
             """, unsafe_allow_html=True)
         else:
@@ -924,7 +931,7 @@ if 'csv_data' in st.session_state:
             <div style='background: linear-gradient(135deg, #ff9800 0%, #ffb74d 100%); 
                         padding: 20px; border-radius: 15px; text-align: center; color: white;
                         box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);'>
-                <h2 style='margin: 0; color: white;'>⚠️ 総合スコア: {total_score}/15点</h2>
+                <h2 style='margin: 0; color: white;'>⚠️ 総合スコア: {total_score}/{max_possible_score}点</h2>
             </div>
             """, unsafe_allow_html=True)
         
@@ -1403,7 +1410,7 @@ if 'csv_data' in st.session_state:
                             category = ''.join([c for c in col if not c.isdigit()])
                             keywords.append(f"{category}: {row[col]}")
             
-                    # 1. トンマナ校正
+                    # 1. トンマナ校正（設定のON/OFFを確認）
                     if st.session_state.get('enable_tonmana', True):
                         tonmana_message = f"""##QUESTION##
 {current_question}
@@ -1431,7 +1438,8 @@ if 'csv_data' in st.session_state:
                             if improvements:
                                 df.at[index, '改善点'] += f"【トンマナ】{', '.join(improvements)}\n"
                     else:
-                        df.at[index, 'トンマナスコア'] = 5
+                        # OFFの場合はスコアを計算に含めない
+                        df.at[index, 'トンマナスコア'] = 0
             
                     # 2. 日本語校正
                     if st.session_state.get('enable_japanese', False):
@@ -1452,7 +1460,8 @@ if 'csv_data' in st.session_state:
                             if improvements:
                                 df.at[index, '改善点'] += f"【日本語】{', '.join(improvements)}\n"
                     else:
-                        df.at[index, '日本語スコア'] = 5
+                        # OFFの場合はスコアを計算に含めない
+                        df.at[index, '日本語スコア'] = 0
             
                     # 3. ロジック校正
                     if st.session_state.get('enable_logic', True):
@@ -1501,7 +1510,8 @@ if 'csv_data' in st.session_state:
                             if improvements:
                                 df.at[index, '改善点'] += f"【ロジック】{', '.join(improvements)}\n"
                     else:
-                        df.at[index, 'ロジックスコア'] = 5
+                        # OFFの場合はスコアを計算に含めない
+                        df.at[index, 'ロジックスコア'] = 0
             
                     # 総合スコア計算
                     total_score = df.at[index, 'トンマナスコア'] + df.at[index, '日本語スコア'] + df.at[index, 'ロジックスコア']
@@ -1548,7 +1558,14 @@ if 'csv_data' in st.session_state:
     
             with col4:
                 avg_total = df['総合スコア'].mean()
-                st.metric("平均総合スコア", f"{avg_total:.2f}/15")
+                # 動的に最大スコアを表示
+                enabled_count = sum([
+                    st.session_state.get('enable_tonmana', True),
+                    st.session_state.get('enable_japanese', False),
+                    st.session_state.get('enable_logic', True)
+                ])
+                max_score = enabled_count * 5
+                st.metric("平均総合スコア", f"{avg_total:.2f}/{max_score}")
                 
             # 結果プレビュー
             with st.expander("📊 結果プレビュー", expanded=True):
@@ -1582,15 +1599,25 @@ if 'csv_data' in st.session_state:
             
             # スコアフィルタリング設定
             col_filter1, col_filter2 = st.columns([2, 3])
+            
+            # 最大スコアを動的に計算（ONになっている校正の数×5）
+            enabled_count = sum([
+                st.session_state.get('enable_tonmana', True),
+                st.session_state.get('enable_japanese', False),
+                st.session_state.get('enable_logic', True)
+            ])
+            max_score = enabled_count * 5
+            default_threshold = int(max_score * 0.6)  # デフォルトは最大スコアの60%
+            
             with col_filter1:
-                    score_threshold = st.number_input(
-                        "総合スコアが以下のデータを対象にする",
-                        min_value=0,
-                        max_value=15,
-                        value=9,
-                        step=1,
-                        help="総合スコアがこの値以下のデータを総合校正します"
-                    )
+                score_threshold = st.number_input(
+                    "総合スコアが以下のデータを対象にする",
+                    min_value=0,
+                    max_value=max_score,
+                    value=min(default_threshold, max_score),
+                    step=1,
+                    help=f"総合スコアがこの値以下のデータを総合校正します（最大: {max_score}点）"
+                )
                 
             # 対象データのフィルタリング
             low_score_df = df[df['総合スコア'] <= score_threshold]
