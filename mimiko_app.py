@@ -1650,10 +1650,23 @@ else:  # 一括処理モード
                                     df.at[index, '日本語スコア'] = japanese_json.get('score', 0)
                                     improvements = japanese_json.get('improvements', [])
                                     if improvements and isinstance(improvements, list):
-                                        # 文字列のリストに変換
-                                        improvements_str = [str(imp) for imp in improvements if imp]
+                                        # 改善点を文字列のリストに変換
+                                        improvements_str = []
+                                        for imp in improvements:
+                                            if isinstance(imp, dict):
+                                                # 辞書形式の場合（type, original, suggestion, reason）
+                                                imp_text = f"{imp.get('type', '')}: {imp.get('original', '')} → {imp.get('suggestion', '')}"
+                                                if imp.get('reason'):
+                                                    imp_text += f" ({imp.get('reason')})"
+                                                improvements_str.append(imp_text)
+                                            elif isinstance(imp, str):
+                                                # 文字列の場合はそのまま使用
+                                                improvements_str.append(imp)
+                                        
                                         if improvements_str:
-                                            df.at[index, '改善点'] += f"【日本語】{', '.join(improvements_str)}\n"
+                                            df.at[index, '改善点'] += f"【日本語】\n"
+                                            for imp in improvements_str:
+                                                df.at[index, '改善点'] += f"  ・{imp}\n"
                             else:
                                 # OFFの場合はスコアを計算に含めない
                                 df.at[index, '日本語スコア'] = 0
