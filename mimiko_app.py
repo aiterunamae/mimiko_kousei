@@ -1543,15 +1543,32 @@ else:  # 一括処理モード
                         # 結果を保存するための列を追加（既存の列がある場合は上書き）
                         if 'トンマナスコア' not in df.columns:
                             df['トンマナスコア'] = 0
+                        else:
+                            df['トンマナスコア'] = 0
+                        
                         if '日本語スコア' not in df.columns:
                             df['日本語スコア'] = 0
+                        else:
+                            df['日本語スコア'] = 0
+                            
                         if 'ロジックスコア' not in df.columns:
                             df['ロジックスコア'] = 0
+                        else:
+                            df['ロジックスコア'] = 0
+                            
                         if '総合スコア' not in df.columns:
                             df['総合スコア'] = 0
+                        else:
+                            df['総合スコア'] = 0
+                            
                         if '改善点' not in df.columns:
                             df['改善点'] = ""
+                        else:
+                            df['改善点'] = ""
+                            
                         if '総合校正結果' not in df.columns:
+                            df['総合校正結果'] = ""
+                        else:
                             df['総合校正結果'] = ""
                         
                         # 設定の準備
