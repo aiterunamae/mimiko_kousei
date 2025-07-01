@@ -1584,6 +1584,9 @@ else:  # 一括処理モード
                         for index, row in df.iterrows():
                             status_text.text(f"処理中: {index + 1}/{len(df)}")
                             
+                            # この行の改善点を初期化（重要）
+                            df.at[index, '改善点'] = ""
+                            
                             # 質問と回答を取得
                             current_question = row['質問']
                             current_answer = row['回答']
@@ -1621,8 +1624,11 @@ else:  # 一括処理モード
                                 if tonmana_json:
                                     df.at[index, 'トンマナスコア'] = tonmana_json.get('score', 0)
                                     improvements = tonmana_json.get('improvements', [])
-                                    if improvements:
-                                        df.at[index, '改善点'] += f"【トンマナ】{', '.join(improvements)}\n"
+                                    if improvements and isinstance(improvements, list):
+                                        # 文字列のリストに変換
+                                        improvements_str = [str(imp) for imp in improvements if imp]
+                                        if improvements_str:
+                                            df.at[index, '改善点'] += f"【トンマナ】{', '.join(improvements_str)}\n"
                             else:
                                 # OFFの場合はスコアを計算に含めない
                                 df.at[index, 'トンマナスコア'] = 0
@@ -1643,8 +1649,11 @@ else:  # 一括処理モード
                                 if japanese_json:
                                     df.at[index, '日本語スコア'] = japanese_json.get('score', 0)
                                     improvements = japanese_json.get('improvements', [])
-                                    if improvements:
-                                        df.at[index, '改善点'] += f"【日本語】{', '.join(improvements)}\n"
+                                    if improvements and isinstance(improvements, list):
+                                        # 文字列のリストに変換
+                                        improvements_str = [str(imp) for imp in improvements if imp]
+                                        if improvements_str:
+                                            df.at[index, '改善点'] += f"【日本語】{', '.join(improvements_str)}\n"
                             else:
                                 # OFFの場合はスコアを計算に含めない
                                 df.at[index, '日本語スコア'] = 0
@@ -1693,8 +1702,11 @@ else:  # 一括処理モード
                                 if logic_json:
                                     df.at[index, 'ロジックスコア'] = logic_json.get('score', 0)
                                     improvements = logic_json.get('improvements', [])
-                                    if improvements:
-                                        df.at[index, '改善点'] += f"【ロジック】{', '.join(improvements)}\n"
+                                    if improvements and isinstance(improvements, list):
+                                        # 文字列のリストに変換
+                                        improvements_str = [str(imp) for imp in improvements if imp]
+                                        if improvements_str:
+                                            df.at[index, '改善点'] += f"【ロジック】{', '.join(improvements_str)}\n"
                             else:
                                 # OFFの場合はスコアを計算に含めない
                                 df.at[index, 'ロジックスコア'] = 0
