@@ -641,6 +641,52 @@ st.markdown("""
     .stCheckbox:hover {
         background-color: #f8f9fa;
     }
+    
+    /* セクションコンテナのスタイリング */
+    .section-container {
+        background-color: #ffffff;
+        border: 1px solid #e0e0e0;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .section-header {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #667eea;
+    }
+    
+    /* 設定セクション */
+    .settings-section {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    /* 結果セクション */
+    .result-section {
+        background-color: #f0f8ff;
+        border: 1px solid #b3d9ff;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-top: 1.5rem;
+    }
+    
+    /* データ選択セクション */
+    .data-selection-section {
+        background-color: #fff9e6;
+        border: 1px solid #ffd966;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -656,7 +702,10 @@ if not vertex_ai_project_id:
     st.error("⚠️ Vertex AI Project IDが設定されていません。secrets.tomlファイルに設定してください。")
 
 # Settings section
-with st.expander("⚙️ 詳細設定", expanded=False):
+st.markdown('<div class="section-container">', unsafe_allow_html=True)
+st.markdown('<h2 class="section-header">⚙️ 詳細設定</h2>', unsafe_allow_html=True)
+
+with st.container():
     # モデル選択
     selected_model = st.selectbox(
         "🎯 モデル",
@@ -673,7 +722,7 @@ with st.expander("⚙️ 詳細設定", expanded=False):
             thinking_budget = st.slider(
                 "Thinking Budget",
                 min_value=0,
-                max_value=8192,
+                max_value=4096,
                 value=1024,
                 step=128,
                 help="推論に使用するトークン数。0に設定すると推論機能を無効化します。"
@@ -682,7 +731,7 @@ with st.expander("⚙️ 詳細設定", expanded=False):
             thinking_budget = st.slider(
                 "Thinking Budget",
                 min_value=128,
-                max_value=32768,
+                max_value=4096,
                 value=1024,
                 step=128,
                 help="推論に使用するトークン数。Proモデルは最小128トークンが必要です。"
@@ -701,8 +750,11 @@ with st.expander("⚙️ 詳細設定", expanded=False):
     with col3:
         enable_logic = st.checkbox("🔍 ロジック校正", value=True, key="enable_logic")
 
+st.markdown('</div>', unsafe_allow_html=True)
+
 # Input section
-st.header("入力")
+st.markdown('<div class="section-container">', unsafe_allow_html=True)
+st.markdown('<h2 class="section-header">📄 入力</h2>', unsafe_allow_html=True)
 
 # モード選択
 mode_col1, mode_col2, mode_col3 = st.columns([1, 2, 1])
@@ -714,9 +766,14 @@ with mode_col2:
         help="手動入力モード: 個別にデータを選択して詳細な校正を行います\n一括処理モード: 全データを自動的に校正します"
     )
 
-st.divider()
+st.markdown('</div>', unsafe_allow_html=True)
 
+# 処理モードに応じたコンテンツ
 if processing_mode == "🖊️ 手動入力モード":
+    # 手動入力モードセクション
+    st.markdown('<div class="section-container">', unsafe_allow_html=True)
+    st.markdown('<h2 class="section-header">🖊️ 手動入力モード</h2>', unsafe_allow_html=True)
+    
     st.info("生成アプリで出力されたCSVファイルをアップロードしてください")
     
     uploaded_file = st.file_uploader("CSVファイルを選択", type=['csv'])
@@ -770,7 +827,8 @@ if processing_mode == "🖊️ 手動入力モード":
         df = st.session_state.csv_data
         keyword_columns = st.session_state.keyword_columns
         
-        # 行選択
+        # データ選択セクション
+        st.markdown('<div class="data-selection-section">', unsafe_allow_html=True)
         st.subheader("📝 データ選択")
         
         # データ一覧を表示
@@ -839,8 +897,13 @@ if processing_mode == "🖊️ 手動入力モード":
                     st.success("校正結果をリセットしました")
                     st.rerun()
         
+        st.markdown('</div>', unsafe_allow_html=True)
+        
         # 個別校正実行
         if do_correction or f'correction_done_{selected_row_idx}' in st.session_state:
+            # 校正結果セクション
+            st.markdown('<div class="result-section">', unsafe_allow_html=True)
+            st.subheader("📊 校正結果")
             # セッション状態の初期化
             if f'corrections_{selected_row_idx}' not in st.session_state:
                 st.session_state[f'corrections_{selected_row_idx}'] = {}
@@ -1385,12 +1448,12 @@ if processing_mode == "🖊️ 手動入力モード":
                                 st.markdown("**🔍 ロジック改善:**")
                                 for imp in st.session_state[f'selected_logic_{selected_row_idx}']:
                                     st.write(f"- {imp}")
-        
-        # 区切り線
-        st.divider()
+            
+            st.markdown('</div>', unsafe_allow_html=True)
         
         # 個別校正結果のダウンロード
-        st.header("📥 個別校正結果のダウンロード")
+        st.markdown('<div class="section-container">', unsafe_allow_html=True)
+        st.markdown('<h2 class="section-header">📥 個別校正結果のダウンロード</h2>', unsafe_allow_html=True)
         
         # 校正済みのデータを収集
         corrected_data = []
@@ -1480,8 +1543,16 @@ if processing_mode == "🖊️ 手動入力モード":
                 )
         else:
             st.info("まだ校正済みのデータがありません。上記で個別に校正を実行してください。")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
 
 else:  # 一括処理モード
+    # 一括処理モードセクション
+    st.markdown('<div class="section-container">', unsafe_allow_html=True)
+    st.markdown('<h2 class="section-header">📊 一括処理モード</h2>', unsafe_allow_html=True)
+    
     st.info("生成アプリで出力されたCSVファイルをアップロードしてください")
     
     uploaded_file = st.file_uploader("CSVファイルを選択 (一括処理用)", type=['csv'], key="batch_uploader")
@@ -1738,6 +1809,10 @@ else:  # 一括処理モード
                 
                 # 一括校正結果がある場合のみ表示
                 if 'batch_results_df' in st.session_state:
+                    # 結果セクション
+                    st.markdown('<div class="result-section">', unsafe_allow_html=True)
+                    st.markdown('<h2 class="section-header">📊 一括校正結果</h2>', unsafe_allow_html=True)
+                    
                     df = st.session_state['batch_results_df']
                     
                     # リセットボタン
@@ -1838,9 +1913,11 @@ else:  # 一括処理モード
                             improvements_df = df[df['改善点'] != ''][['id', '質問', '改善点']].head(10)
                             st.dataframe(improvements_df, use_container_width=True)
                     
-                    # 低スコアデータの総合校正
-                    st.divider()
-                    st.subheader("🎯 低スコアデータの一括総合校正")
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    
+                    # 低スコアデータの総合校正セクション
+                    st.markdown('<div class="section-container">', unsafe_allow_html=True)
+                    st.markdown('<h2 class="section-header">🎯 低スコアデータの一括総合校正</h2>', unsafe_allow_html=True)
                     
                     # スコアフィルタリング設定
                     col_filter1, col_filter2 = st.columns([2, 3])
@@ -1955,8 +2032,12 @@ else:  # 一括処理モード
                                         st.text_area("", value=row['総合校正結果'], height=150, disabled=True, key=f"comp_{idx}")
                                     st.divider()
                     
-                    # CSV出力
-                    st.divider()
+                    st.markdown('</div>', unsafe_allow_html=True)
+                    
+                    # CSV出力セクション
+                    st.markdown('<div class="section-container">', unsafe_allow_html=True)
+                    st.markdown('<h2 class="section-header">📥 一括処理結果のダウンロード</h2>', unsafe_allow_html=True)
+                    
                     output_buffer = io.StringIO()
                     # batch_comprehensive_dfがある場合はそれを使用
                     export_df = st.session_state.get('batch_comprehensive_df', df)
@@ -1972,3 +2053,7 @@ else:  # 一括処理モード
                             mime="text/csv",
                             use_container_width=True
                         )
+                    
+                    st.markdown('</div>', unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
