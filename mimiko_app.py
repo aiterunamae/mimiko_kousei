@@ -688,12 +688,22 @@ st.markdown("""
         margin-bottom: 1.5rem;
     }
     
-    /* Streamlitのフッター要素を非表示 */
-    .viewerBadge_link__qRIco {
+    /* Streamlitのフッター要素を非表示 - より包括的なセレクタ */
+    .streamlit-footer {
         display: none !important;
     }
     
-    /* Streamlitのメインメニューを非表示（オプション） */
+    /* 右下のView app sourceリンクを非表示 */
+    .viewerBadge_container__1QSob {
+        display: none !important;
+    }
+    
+    /* プロフィールコンテナを非表示 */
+    ._profileContainer_gzau3_53 {
+        display: none !important;
+    }
+    
+    /* Streamlitのメインメニューを非表示 */
     #MainMenu {
         visibility: hidden;
     }
@@ -702,19 +712,22 @@ st.markdown("""
     footer {
         visibility: hidden;
     }
-    
-    /* Deploy buttonを非表示 */
-    .stDeployButton {
-        display: none;
-    }
-    
-    /* Made with Streamlitを非表示 */
-    ._container_scych_1 {
+    footer._container_gzau3_1 {
         display: none !important;
     }
     
-    /* View app sourceを非表示 */
-    ._profileContainer_scych_53 {
+    /* Deploy buttonを非表示 */
+    .stDeployButton {
+        display: none !important;
+    }
+    
+    /* Made with Streamlitを含む要素を非表示 */
+    [data-testid="stToolbar"] {
+        display: none !important;
+    }
+    
+    /* 右下の固定要素を非表示 */
+    div[class*="viewerBadge"] {
         display: none !important;
     }
     
@@ -723,10 +736,104 @@ st.markdown("""
         display: none !important;
     }
     
+    /* 開発者向けメニューを非表示 */
+    [data-testid="stStatusWidget"] {
+        display: none !important;
+    }
+    
+    /* ヘッダーの背景を透明に */
     .stApp > header {
         background-color: transparent;
     }
+    
+    /* 右下の固定位置にある要素を全て非表示 */
+    div[style*="position: fixed"][style*="bottom"] {
+        display: none !important;
+    }
+    
+    /* Streamlit特有のフッター要素をターゲット */
+    ._anchor_1e9tm_1 {
+        display: none !important;
+    }
+    
+    /* コンテナ内のすべてのフッター関連要素 */
+    div[class*="container"][class*="gzau3"] {
+        display: none !important;
+    }
+    
+    /* プロフィールとバッジを含む要素 */
+    a[href*="streamlit.io"] {
+        display: none !important;
+    }
+    
+    /* リンクを含む固定要素 */
+    ._link_gzau3_5 {
+        display: none !important;
+    }
+    
+    /* 右下のすべての固定要素 */
+    ._fixed_gzau3_25 {
+        display: none !important;
+    }
+    
+    /* Streamlitバッジ */
+    button[title*="View app source"] {
+        display: none !important;
+    }
+    
+    /* ツールバー全体 */
+    [class*="stToolbar"] {
+        display: none !important;
+    }
+    
+    /* アプリのソースビューボタン */
+    button[kind="streamlitToolbarItem"] {
+        display: none !important;
+    }
 </style>
+
+<script>
+    // JavaScriptによる動的な要素削除
+    function hideStreamlitElements() {
+        // クラス名やテキストコンテンツで要素を探して削除
+        const elementsToHide = [
+            'a[href*="streamlit.io"]',
+            'div[class*="viewerBadge"]',
+            'button[title*="View app source"]',
+            '[data-testid="manage-app-button"]',
+            '[data-testid="baseButton-secondary"]'
+        ];
+        
+        elementsToHide.forEach(selector => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(el => {
+                el.style.display = 'none';
+                el.style.visibility = 'hidden';
+            });
+        });
+        
+        // "Made with Streamlit"テキストを含む要素を探して削除
+        const allElements = document.getElementsByTagName('*');
+        for (let el of allElements) {
+            if (el.textContent && el.textContent.includes('Made with Streamlit')) {
+                el.style.display = 'none';
+            }
+            if (el.textContent && el.textContent.includes('Hosted with Streamlit')) {
+                el.style.display = 'none';
+            }
+        }
+    }
+    
+    // ページ読み込み後と定期的に実行
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', hideStreamlitElements);
+    } else {
+        hideStreamlitElements();
+    }
+    
+    // Streamlitは動的に要素を追加することがあるため、定期的にチェック
+    setInterval(hideStreamlitElements, 500);
+</script>
 """, unsafe_allow_html=True)
 
 # メインヘッダー
