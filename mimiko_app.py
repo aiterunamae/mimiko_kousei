@@ -1037,39 +1037,39 @@ if processing_mode == "🖊️ 手動入力モード":
             # ファイルが変わったかチェック
             if 'current_file_key' not in st.session_state or st.session_state.current_file_key != file_key:
                 st.session_state.current_file_key = file_key
-            # 新しいファイルの場合、関連するセッション状態をクリア
-            for key in list(st.session_state.keys()):
-                if key.startswith('correction_') or key.startswith('selected_') or key == 'csv_data':
-                    del st.session_state[key]
-        try:
-            # CSVファイルを読み込み
-            df = pd.read_csv(uploaded_file, encoding='utf-8-sig')
-            
-            # 必要な列の存在確認
-            required_columns = ["id", "質問", "回答"]
-            if not all(col in df.columns for col in required_columns):
-                st.error(f"必須列が不足しています: {required_columns}")
-            else:
-                # キーワード列の検出（動的に対応）
-                keyword_columns = []
-                for col in df.columns:
-                    # カテゴリ名で終わる列を検出（例: ハウス1, サイン2, など）
-                    if any(col.endswith(str(i)) for i in range(1, 5)):
-                        for cat in ["ハウス", "サイン", "天体", "エレメント", "MP軸", "タロット"]:
-                            if col.startswith(cat):
-                                keyword_columns.append(col)
-                                break
+                # 新しいファイルの場合、関連するセッション状態をクリア
+                for key in list(st.session_state.keys()):
+                    if key.startswith('correction_') or key.startswith('selected_') or key == 'csv_data':
+                        del st.session_state[key]
+            try:
+                # CSVファイルを読み込み
+                df = pd.read_csv(uploaded_file, encoding='utf-8-sig')
                 
-                st.success(f"✅ {len(df)}件のデータを読み込みました")
-                st.write(f"検出されたキーワード列: {keyword_columns}")
+                # 必要な列の存在確認
+                required_columns = ["id", "質問", "回答"]
+                if not all(col in df.columns for col in required_columns):
+                    st.error(f"必須列が不足しています: {required_columns}")
+                else:
+                    # キーワード列の検出（動的に対応）
+                        keyword_columns = []
+                    for col in df.columns:
+                        # カテゴリ名で終わる列を検出（例: ハウス1, サイン2, など）
+                        if any(col.endswith(str(i)) for i in range(1, 5)):
+                            for cat in ["ハウス", "サイン", "天体", "エレメント", "MP軸", "タロット"]:
+                                if col.startswith(cat):
+                                    keyword_columns.append(col)
+                                    break
+                    
+                    st.success(f"✅ {len(df)}件のデータを読み込みました")
+                    st.write(f"検出されたキーワード列: {keyword_columns}")
                 
-                # プレビュー表示
-                with st.expander("データプレビュー", expanded=False):
-                    st.dataframe(df.head())
-                
-                # セッション状態に保存
-                st.session_state.csv_data = df
-                st.session_state.keyword_columns = keyword_columns
+                    # プレビュー表示
+                    with st.expander("データプレビュー", expanded=False):
+                        st.dataframe(df.head())
+                    
+                    # セッション状態に保存
+                    st.session_state.csv_data = df
+                    st.session_state.keyword_columns = keyword_columns
                 
             except Exception as e:
                 st.error(f"CSVファイルの読み込みエラー: {e}")
