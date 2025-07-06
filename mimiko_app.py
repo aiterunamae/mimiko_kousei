@@ -1773,14 +1773,14 @@ if processing_mode == "🖊️ 手動入力モード":
                 
                 # プレビュー表示
                 with st.expander("📊 校正済みデータのプレビュー", expanded=False):
-                display_columns = ['id', '質問', 'トンマナスコア', '日本語スコア', 'ロジックスコア', '総合スコア']
-                # スコアに応じて色付け
-                styled_df = result_df[display_columns].style.applymap(
-                    lambda x: 'background-color: #e8f5e9' if isinstance(x, (int, float)) and x >= 4 else 
-                             'background-color: #fff3e0' if isinstance(x, (int, float)) and x >= 2 else 
-                             'background-color: #ffebee' if isinstance(x, (int, float)) and x < 2 else '',
-                    subset=['トンマナスコア', '日本語スコア', 'ロジックスコア', '総合スコア']
-                )
+                    display_columns = ['id', '質問', 'トンマナスコア', '日本語スコア', 'ロジックスコア', '総合スコア']
+                    # スコアに応じて色付け
+                    styled_df = result_df[display_columns].style.applymap(
+                        lambda x: 'background-color: #e8f5e9' if isinstance(x, (int, float)) and x >= 4 else 
+                                 'background-color: #fff3e0' if isinstance(x, (int, float)) and x >= 2 else 
+                                 'background-color: #ffebee' if isinstance(x, (int, float)) and x < 2 else '',
+                        subset=['トンマナスコア', '日本語スコア', 'ロジックスコア', '総合スコア']
+                    )
                     st.dataframe(styled_df)
                 
                 # CSVダウンロードボタン
