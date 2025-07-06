@@ -1031,12 +1031,12 @@ if processing_mode == "🖊️ 手動入力モード":
         uploaded_file = st.file_uploader("CSVファイルを選択", type=['csv'])
         
         if uploaded_file is not None:
-        # ファイル名をキーとして使用
-        file_key = f"file_{uploaded_file.name}_{uploaded_file.size}"
-        
-        # ファイルが変わったかチェック
-        if 'current_file_key' not in st.session_state or st.session_state.current_file_key != file_key:
-            st.session_state.current_file_key = file_key
+            # ファイル名をキーとして使用
+            file_key = f"file_{uploaded_file.name}_{uploaded_file.size}"
+            
+            # ファイルが変わったかチェック
+            if 'current_file_key' not in st.session_state or st.session_state.current_file_key != file_key:
+                st.session_state.current_file_key = file_key
             # 新しいファイルの場合、関連するセッション状態をクリア
             for key in list(st.session_state.keys()):
                 if key.startswith('correction_') or key.startswith('selected_') or key == 'csv_data':
@@ -1071,8 +1071,8 @@ if processing_mode == "🖊️ 手動入力モード":
                 st.session_state.csv_data = df
                 st.session_state.keyword_columns = keyword_columns
                 
-        except Exception as e:
-            st.error(f"CSVファイルの読み込みエラー: {e}")
+            except Exception as e:
+                st.error(f"CSVファイルの読み込みエラー: {e}")
         
         st.markdown('</div>', unsafe_allow_html=True)
     
@@ -1753,14 +1753,14 @@ if processing_mode == "🖊️ 手動入力モード":
             if corrected_data:
                 # スコアサマリー表示
                 col_sum1, col_sum2, col_sum3 = st.columns(3)
+                
+                # データフレームに変換
+                result_df = pd.DataFrame(corrected_data)
             
-            # データフレームに変換
-            result_df = pd.DataFrame(corrected_data)
-            
-            # 平均スコア計算
-            avg_tonmana = result_df['トンマナスコア'].mean() if 'トンマナスコア' in result_df else 0
-            avg_japanese = result_df['日本語スコア'].mean() if '日本語スコア' in result_df else 0
-            avg_logic = result_df['ロジックスコア'].mean() if 'ロジックスコア' in result_df else 0
+                # 平均スコア計算
+                avg_tonmana = result_df['トンマナスコア'].mean() if 'トンマナスコア' in result_df else 0
+                avg_japanese = result_df['日本語スコア'].mean() if '日本語スコア' in result_df else 0
+                avg_logic = result_df['ロジックスコア'].mean() if 'ロジックスコア' in result_df else 0
             
             with col_sum1:
                 st.metric("🎨 トンマナ平均", f"{avg_tonmana:.2f}/5")
@@ -1798,9 +1798,9 @@ if processing_mode == "🖊️ 手動入力モード":
                     type="primary"
                 )
         else:
-            st.info("まだ校正済みのデータがありません。上記で個別に校正を実行してください。")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
+                st.info("まだ校正済みのデータがありません。上記で個別に校正を実行してください。")
+            
+            st.markdown('</div>', unsafe_allow_html=True)
 
 else:  # 一括処理モード
     # 一括処理モードセクション
