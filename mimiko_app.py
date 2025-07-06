@@ -652,6 +652,21 @@ st.markdown("""
         box-shadow: 0 2px 10px rgba(0,0,0,0.05);
     }
     
+    /* Streamlitアプリのメインセクション */
+    .main .block-container {
+        padding-top: 2rem;
+    }
+    
+    /* カラムをセクションコンテナとしてスタイリング */
+    div[data-testid="column"] {
+        background-color: #ffffff !important;
+        border: 1px solid #e0e0e0 !important;
+        border-radius: 15px !important;
+        padding: 1.5rem !important;
+        margin-bottom: 2rem !important;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05) !important;
+    }
+    
     .section-header {
         font-size: 1.5rem;
         font-weight: 600;
@@ -953,80 +968,77 @@ if not vertex_ai_project_id:
     st.error("⚠️ Vertex AI Project IDが設定されていません。secrets.tomlファイルに設定してください。")
 
 # Settings section
-st.markdown('<div class="section-container">', unsafe_allow_html=True)
-st.markdown('<h2 class="section-header">⚙️ 詳細設定</h2>', unsafe_allow_html=True)
-
-# モデル選択
-selected_model = st.selectbox(
-    "🎯 モデル",
-    vertex_model_options,
-    index=0 if default_model not in vertex_model_options else vertex_model_options.index(default_model),
-    key="selected_model"
-)
-
-# Thinking Budget設定（2.5モデルの場合のみ）
-thinking_budget = 1024  # デフォルト値
-if "2.5" in selected_model:
-    st.write("### 🧠 推論設定")
-    if "2.5-flash" in selected_model:
-        thinking_budget = st.slider(
-            "Thinking Budget",
-            min_value=0,
-            max_value=4096,
-            value=1024,
-            step=128,
-            help="推論に使用するトークン数。0に設定すると推論機能を無効化します。"
-        )
-    elif "2.5-pro" in selected_model:
-        thinking_budget = st.slider(
-            "Thinking Budget",
-            min_value=128,
-            max_value=4096,
-            value=1024,
-            step=128,
-            help="推論に使用するトークン数。Proモデルは最小128トークンが必要です。"
-        )
-
-# 校正ON/OFF設定
-st.write("### 📋 校正設定")
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    enable_tonmana = st.checkbox("🎨 トンマナ校正", value=True, key="enable_tonmana")
-
-with col2:
-    enable_japanese = st.checkbox("📝 日本語校正", value=False, key="enable_japanese")
-
-with col3:
-    enable_logic = st.checkbox("🔍 ロジック校正", value=True, key="enable_logic")
-
-st.markdown('</div>', unsafe_allow_html=True)
+with st.expander("⚙️ 詳細設定", expanded=True):
+    
+    # モデル選択
+    selected_model = st.selectbox(
+        "🎯 モデル",
+        vertex_model_options,
+        index=0 if default_model not in vertex_model_options else vertex_model_options.index(default_model),
+        key="selected_model"
+    )
+    
+    # Thinking Budget設定（2.5モデルの場合のみ）
+    thinking_budget = 1024  # デフォルト値
+    if "2.5" in selected_model:
+        st.write("### 🧠 推論設定")
+        if "2.5-flash" in selected_model:
+            thinking_budget = st.slider(
+                "Thinking Budget",
+                min_value=0,
+                max_value=4096,
+                value=1024,
+                step=128,
+                help="推論に使用するトークン数。0に設定すると推論機能を無効化します。"
+            )
+        elif "2.5-pro" in selected_model:
+            thinking_budget = st.slider(
+                "Thinking Budget",
+                min_value=128,
+                max_value=4096,
+                value=1024,
+                step=128,
+                help="推論に使用するトークン数。Proモデルは最小128トークンが必要です。"
+            )
+    
+    # 校正ON/OFF設定
+    st.write("### 📋 校正設定")
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        enable_tonmana = st.checkbox("🎨 トンマナ校正", value=True, key="enable_tonmana")
+    
+    with col2:
+        enable_japanese = st.checkbox("📝 日本語校正", value=False, key="enable_japanese")
+    
+    with col3:
+        enable_logic = st.checkbox("🔍 ロジック校正", value=True, key="enable_logic")
 
 # Input section
-st.markdown('<div class="section-container">', unsafe_allow_html=True)
-st.markdown('<h2 class="section-header">📄 入力</h2>', unsafe_allow_html=True)
-
-# モード選択
-mode_col1, mode_col2, mode_col3 = st.columns([1, 2, 1])
-with mode_col2:
-    processing_mode = st.radio(
-        "処理モードを選択",
-        ["🖊️ 手動入力モード", "📊 一括処理モード"],
-        horizontal=True,
-        help="手動入力モード: 個別にデータを選択して詳細な校正を行います\n一括処理モード: 全データを自動的に校正します"
-    )
-
-st.markdown('</div>', unsafe_allow_html=True)
+col = st.columns(1)[0]
+with col:
+    st.markdown("## 📄 入力")
+    
+    # モード選択
+    mode_col1, mode_col2, mode_col3 = st.columns([1, 2, 1])
+    with mode_col2:
+        processing_mode = st.radio(
+            "処理モードを選択",
+            ["🖊️ 手動入力モード", "📊 一括処理モード"],
+            horizontal=True,
+            help="手動入力モード: 個別にデータを選択して詳細な校正を行います\n一括処理モード: 全データを自動的に校正します"
+        )
 
 # 処理モードに応じたコンテンツ
 if processing_mode == "🖊️ 手動入力モード":
     # 手動入力モードセクション
-    st.markdown('<div class="section-container">', unsafe_allow_html=True)
-    st.markdown('<h2 class="section-header">🖊️ 手動入力モード</h2>', unsafe_allow_html=True)
-    
-    st.info("生成アプリで出力されたCSVファイルをアップロードしてください")
-    
-    uploaded_file = st.file_uploader("CSVファイルを選択", type=['csv'])
+    col = st.columns(1)[0]
+    with col:
+        st.markdown("## 🖊️ 手動入力モード")
+        
+        st.info("生成アプリで出力されたCSVファイルをアップロードしてください")
+        
+        uploaded_file = st.file_uploader("CSVファイルを選択", type=['csv'])
     
     if uploaded_file is not None:
         # ファイル名をキーとして使用
