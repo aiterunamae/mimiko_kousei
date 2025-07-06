@@ -1051,7 +1051,7 @@ if processing_mode == "🖊️ 手動入力モード":
                     st.error(f"必須列が不足しています: {required_columns}")
                 else:
                     # キーワード列の検出（動的に対応）
-                        keyword_columns = []
+                    keyword_columns = []
                     for col in df.columns:
                         # カテゴリ名で終わる列を検出（例: ハウス1, サイン2, など）
                         if any(col.endswith(str(i)) for i in range(1, 5)):
