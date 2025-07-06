@@ -843,6 +843,13 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+# Config確認（デバッグ用）
+with st.expander("⚙️ Config確認（デバッグ用）"):
+    st.write("現在のStreamlit設定:")
+    st.write(f"- ツールバーモード: {st.get_option('client.toolbarMode')}")
+    st.write(f"- 使用統計収集: {st.get_option('browser.gatherUsageStats')}")
+    st.write(f"- エラー詳細表示: {st.get_option('client.showErrorDetails')}")
+
 # Project IDが設定されていない場合の警告
 if not vertex_ai_project_id:
     st.error("⚠️ Vertex AI Project IDが設定されていません。secrets.tomlファイルに設定してください。")
