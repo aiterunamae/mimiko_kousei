@@ -898,12 +898,45 @@ st.markdown("""
 </script>
 """, unsafe_allow_html=True)
 
-# シンプルなStreamlit要素非表示設定
+# Streamlit要素非表示設定（複数の方法を組み合わせ）
 hide_streamlit_style = """
 <style>
+/* メインメニュー非表示 */
 #MainMenu {visibility: hidden;}
-footer {visibility: hidden;}
-header {visibility: hidden;}
+
+/* フッター非表示（複数の方法） */
+footer {visibility: hidden !important;}
+footer {display: none !important;}
+
+/* ヘッダー非表示 */
+header {visibility: hidden !important;}
+
+/* Streamlit特有のクラスをターゲット */
+.viewerBadge_container__r5tak {display: none !important;}
+.viewerBadge_link__qRIco {display: none !important;}
+.viewerBadge_text__1JaDK {display: none !important;}
+
+/* デプロイボタン非表示 */
+.stDeployButton {display: none !important;}
+
+/* GitHub リンク非表示 */
+.stGitHubLink {display: none !important;}
+
+/* アプリビューワーの要素 */
+._container_1e9tm_1 {display: none !important;}
+._anchor_1e9tm_1 {display: none !important;}
+
+/* 右下の固定要素全て */
+div[data-testid="stDecoration"] {display: none !important;}
+div[data-testid="collapsedControl"] {display: none !important;}
+
+/* IFrameの場合の対策 */
+.main > div:last-child {display: none !important;}
+.main > footer {display: none !important;}
+
+/* z-indexが高い要素を隠す */
+div[style*="z-index: 99999"] {display: none !important;}
+div[style*="z-index: 9999"] {display: none !important;}
 </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
