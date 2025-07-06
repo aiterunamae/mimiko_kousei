@@ -795,44 +795,106 @@ st.markdown("""
 <script>
     // JavaScriptによる動的な要素削除
     function hideStreamlitElements() {
-        // クラス名やテキストコンテンツで要素を探して削除
-        const elementsToHide = [
+        // より広範なセレクタで要素を探す
+        const selectors = [
+            // リンク関連
             'a[href*="streamlit.io"]',
-            'div[class*="viewerBadge"]',
-            'button[title*="View app source"]',
-            '[data-testid="manage-app-button"]',
-            '[data-testid="baseButton-secondary"]'
+            'a[href*="share.streamlit.io"]',
+            
+            // フッター関連の一般的なクラス
+            'footer',
+            '[class*="footer"]',
+            '[class*="Footer"]',
+            
+            // バッジ関連
+            '[class*="badge"]',
+            '[class*="Badge"]',
+            '[class*="viewer"]',
+            
+            // ボタン関連
+            'button[title*="View"]',
+            'button[title*="view"]',
+            'button[title*="source"]',
+            'button[title*="Source"]',
+            
+            // データ属性
+            '[data-testid*="toolbar"]',
+            '[data-testid*="footer"]',
+            '[data-testid*="badge"]',
+            
+            // 固定位置の要素
+            'div[style*="position: fixed"]',
+            'div[style*="position:fixed"]',
+            
+            // iframeやembedded要素
+            'iframe[src*="streamlit"]',
+            
+            // 特定のテキストを含む要素の親要素も対象に
+            'div:has(a[href*="streamlit.io"])',
+            'div:has(> div > a[href*="streamlit.io"])',
+            'div:has(> div > div > a[href*="streamlit.io"])'
         ];
         
-        elementsToHide.forEach(selector => {
-            const elements = document.querySelectorAll(selector);
-            elements.forEach(el => {
-                el.style.display = 'none';
-                el.style.visibility = 'hidden';
-            });
+        // セレクタで要素を削除
+        selectors.forEach(selector => {
+            try {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(el => {
+                    // 右下の固定要素かチェック
+                    const rect = el.getBoundingClientRect();
+                    const style = window.getComputedStyle(el);
+                    
+                    if (style.position === 'fixed' && 
+                        (rect.bottom > window.innerHeight - 100 || rect.right > window.innerWidth - 200)) {
+                        el.remove();
+                    } else if (el.textContent && 
+                              (el.textContent.includes('Streamlit') || 
+                               el.textContent.includes('streamlit') ||
+                               el.textContent.includes('View app source'))) {
+                        el.remove();
+                    }
+                });
+            } catch (e) {
+                // セレクタがサポートされていない場合は無視
+            }
         });
         
-        // "Made with Streamlit"テキストを含む要素を探して削除
-        const allElements = document.getElementsByTagName('*');
-        for (let el of allElements) {
-            if (el.textContent && el.textContent.includes('Made with Streamlit')) {
-                el.style.display = 'none';
+        // テキストベースでの削除
+        const textPatterns = ['Made with Streamlit', 'Hosted with Streamlit', 'View app source', 'Deploy this app'];
+        const allElements = document.querySelectorAll('*');
+        
+        allElements.forEach(el => {
+            if (el.childNodes.length === 1 && el.firstChild && el.firstChild.nodeType === 3) {
+                textPatterns.forEach(pattern => {
+                    if (el.textContent.includes(pattern)) {
+                        // 要素とその親要素を削除
+                        let parent = el;
+                        while (parent && parent.parentElement && parent.parentElement.childNodes.length === 1) {
+                            parent = parent.parentElement;
+                        }
+                        parent.remove();
+                    }
+                });
             }
-            if (el.textContent && el.textContent.includes('Hosted with Streamlit')) {
-                el.style.display = 'none';
-            }
-        }
+        });
     }
     
-    // ページ読み込み後と定期的に実行
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', hideStreamlitElements);
-    } else {
+    // MutationObserverで動的に追加される要素も監視
+    const observer = new MutationObserver(() => {
         hideStreamlitElements();
-    }
+    });
     
-    // Streamlitは動的に要素を追加することがあるため、定期的にチェック
-    setInterval(hideStreamlitElements, 500);
+    // 監視開始
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+    
+    // 初回実行
+    hideStreamlitElements();
+    
+    // 念のため定期的にも実行
+    setInterval(hideStreamlitElements, 1000);
 </script>
 """, unsafe_allow_html=True)
 
@@ -842,13 +904,6 @@ st.markdown("""
     <h1>🌙 mimiko校正システム</h1>
 </div>
 """, unsafe_allow_html=True)
-
-# Config確認（デバッグ用）
-with st.expander("⚙️ Config確認（デバッグ用）"):
-    st.write("現在のStreamlit設定:")
-    st.write(f"- ツールバーモード: {st.get_option('client.toolbarMode')}")
-    st.write(f"- 使用統計収集: {st.get_option('browser.gatherUsageStats')}")
-    st.write(f"- エラー詳細表示: {st.get_option('client.showErrorDetails')}")
 
 # Project IDが設定されていない場合の警告
 if not vertex_ai_project_id:
