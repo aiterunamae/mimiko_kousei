@@ -1015,30 +1015,26 @@ with st.expander("⚙️ 詳細設定", expanded=True):
         enable_logic = st.checkbox("🔍 ロジック校正", value=True, key="enable_logic")
 
 # Input section
-col = st.columns(1)[0]
-with col:
-    st.markdown("## 📄 入力")
-    
-    # モード選択
-    mode_col1, mode_col2, mode_col3 = st.columns([1, 2, 1])
-    with mode_col2:
-        processing_mode = st.radio(
-            "処理モードを選択",
-            ["🖊️ 手動入力モード", "📊 一括処理モード"],
-            horizontal=True,
-            help="手動入力モード: 個別にデータを選択して詳細な校正を行います\n一括処理モード: 全データを自動的に校正します"
-        )
+st.markdown("## 📄 入力")
+
+# モード選択
+mode_col1, mode_col2, mode_col3 = st.columns([1, 2, 1])
+with mode_col2:
+    processing_mode = st.radio(
+        "処理モードを選択",
+        ["🖊️ 手動入力モード", "📊 一括処理モード"],
+        horizontal=True,
+        help="手動入力モード: 個別にデータを選択して詳細な校正を行います\n一括処理モード: 全データを自動的に校正します"
+    )
 
 # 処理モードに応じたコンテンツ
 if processing_mode == "🖊️ 手動入力モード":
     # 手動入力モードセクション
-    col = st.columns(1)[0]
-    with col:
-        st.markdown("## 🖊️ 手動入力モード")
-        
-        st.info("生成アプリで出力されたCSVファイルをアップロードしてください")
-        
-        uploaded_file = st.file_uploader("CSVファイルを選択", type=['csv'])
+    st.markdown("## 🖊️ 手動入力モード")
+    
+    st.info("生成アプリで出力されたCSVファイルをアップロードしてください")
+    
+    uploaded_file = st.file_uploader("CSVファイルを選択", type=['csv'])
     
     if uploaded_file is not None:
         # ファイル名をキーとして使用
@@ -1090,7 +1086,6 @@ if processing_mode == "🖊️ 手動入力モード":
         keyword_columns = st.session_state.keyword_columns
         
         # データ選択セクション
-        st.markdown('<div class="data-selection-section">', unsafe_allow_html=True)
         st.subheader("📝 データ選択")
         
         # データ一覧を表示
@@ -1159,12 +1154,9 @@ if processing_mode == "🖊️ 手動入力モード":
                         st.success("校正結果をリセットしました")
                     st.rerun()
         
-        st.markdown('</div>', unsafe_allow_html=True)
-        
         # 個別校正実行
         if do_correction or f'correction_done_{selected_row_idx}' in st.session_state:
             # 校正結果セクション
-            st.markdown('<div class="result-section">', unsafe_allow_html=True)
             st.subheader("📊 校正結果")
             # セッション状態の初期化
             if f'corrections_{selected_row_idx}' not in st.session_state:
@@ -1711,15 +1703,10 @@ if processing_mode == "🖊️ 手動入力モード":
                                 for imp in st.session_state[f'selected_logic_{selected_row_idx}']:
                                     st.write(f"- {imp}")
             
-            st.markdown('</div>', unsafe_allow_html=True)
-    
-    # 手動入力モードセクションの終了
-    st.markdown('</div>', unsafe_allow_html=True)
     
     # 個別校正結果のダウンロード（手動入力モードのみ）
     if processing_mode == "🖊️ 手動入力モード" and 'csv_data' in st.session_state:
-        st.markdown('<div class="section-container">', unsafe_allow_html=True)
-        st.markdown('<h2 class="section-header">📥 個別校正結果のダウンロード</h2>', unsafe_allow_html=True)
+        st.markdown("## 📥 個別校正結果のダウンロード")
         
         # 校正済みのデータを収集
         corrected_data = []
@@ -1809,19 +1796,14 @@ if processing_mode == "🖊️ 手動入力モード":
                     )
         else:
             st.info("まだ校正済みのデータがありません。上記で個別に校正を実行してください。")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
 
 else:  # 一括処理モード
     # 一括処理モードセクション
-    st.markdown('<div class="section-container">', unsafe_allow_html=True)
-    st.markdown('<h2 class="section-header">📊 一括処理モード</h2>', unsafe_allow_html=True)
+    st.markdown("## 📊 一括処理モード")
     
     st.info("生成アプリで出力されたCSVファイルをアップロードしてください")
     
     uploaded_file = st.file_uploader("CSVファイルを選択 (一括処理用)", type=['csv'], key="batch_uploader")
-    
-    st.markdown('</div>', unsafe_allow_html=True)
     
     if uploaded_file is not None:
         # ファイル名をキーとして使用
@@ -2179,11 +2161,9 @@ else:  # 一括処理モード
                             improvements_df = df[df['改善点'] != ''][['id', '質問', '改善点']].head(10)
                             st.dataframe(improvements_df, use_container_width=True)
                     
-                    st.markdown('</div>', unsafe_allow_html=True)
                     
                     # 低スコアデータの総合校正セクション
-                    st.markdown('<div class="section-container">', unsafe_allow_html=True)
-                    st.markdown('<h2 class="section-header">🎯 低スコアデータの一括総合校正</h2>', unsafe_allow_html=True)
+                    st.markdown('## 🎯 低スコアデータの一括総合校正')
                     
                     # スコアフィルタリング設定
                     col_filter1, col_filter2 = st.columns([2, 3])
@@ -2298,11 +2278,9 @@ else:  # 一括処理モード
                                         st.text_area("", value=row['総合校正結果'], height=150, disabled=True, key=f"comp_{idx}")
                                     st.divider()
                     
-                    st.markdown('</div>', unsafe_allow_html=True)
                     
                     # CSV出力セクション
-                    st.markdown('<div class="section-container">', unsafe_allow_html=True)
-                    st.markdown('<h2 class="section-header">📥 一括処理結果のダウンロード</h2>', unsafe_allow_html=True)
+                    st.markdown('## 📥 一括処理結果のダウンロード')
                     
                     output_buffer = io.StringIO()
                     # batch_comprehensive_dfがある場合はそれを使用
@@ -2320,4 +2298,3 @@ else:  # 一括処理モード
                             use_container_width=True
                         )
                     
-                    st.markdown('</div>', unsafe_allow_html=True)
