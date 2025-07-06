@@ -687,6 +687,45 @@ st.markdown("""
         padding: 1.5rem;
         margin-bottom: 1.5rem;
     }
+    
+    /* Streamlitのフッター要素を非表示 */
+    .viewerBadge_link__qRIco {
+        display: none !important;
+    }
+    
+    /* Streamlitのメインメニューを非表示（オプション） */
+    #MainMenu {
+        visibility: hidden;
+    }
+    
+    /* Streamlitのフッターを非表示 */
+    footer {
+        visibility: hidden;
+    }
+    
+    /* Deploy buttonを非表示 */
+    .stDeployButton {
+        display: none;
+    }
+    
+    /* Made with Streamlitを非表示 */
+    ._container_scych_1 {
+        display: none !important;
+    }
+    
+    /* View app sourceを非表示 */
+    ._profileContainer_scych_53 {
+        display: none !important;
+    }
+    
+    /* その他のStreamlit要素を非表示 */
+    [data-testid="stDecoration"] {
+        display: none !important;
+    }
+    
+    .stApp > header {
+        background-color: transparent;
+    }
 </style>
 """, unsafe_allow_html=True)
 

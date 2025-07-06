@@ -1,5 +1,17 @@
+[client]
+# Streamlitのツールバーモードを設定
+# "auto"（デフォルト）、"viewer"（共有モード）、"minimal"（最小）から選択
+toolbarMode = "minimal"
+
+# 開発者メニューを非表示
+showErrorDetails = false
+
+[ui]
+# "Made with Streamlit" フッターを非表示（この設定は効果が限定的）
+hideTopBar = false
+
 [theme]
-primaryColor = "#9C27B0"  # 紫色
+primaryColor = "#667eea"  # 紫色（メインカラー）
 backgroundColor = "#FFFFFF"  # 白色
 secondaryBackgroundColor = "#F0F2F6"  # 薄いグレー
 textColor = "#262730"  # 濃いグレー
