@@ -1761,18 +1761,18 @@ if processing_mode == "🖊️ 手動入力モード":
                 avg_tonmana = result_df['トンマナスコア'].mean() if 'トンマナスコア' in result_df else 0
                 avg_japanese = result_df['日本語スコア'].mean() if '日本語スコア' in result_df else 0
                 avg_logic = result_df['ロジックスコア'].mean() if 'ロジックスコア' in result_df else 0
+                
+                with col_sum1:
+                    st.metric("🎨 トンマナ平均", f"{avg_tonmana:.2f}/5")
+                with col_sum2:
+                    st.metric("📝 日本語平均", f"{avg_japanese:.2f}/5")
+                with col_sum3:
+                    st.metric("🔍 ロジック平均", f"{avg_logic:.2f}/5")
             
-            with col_sum1:
-                st.metric("🎨 トンマナ平均", f"{avg_tonmana:.2f}/5")
-            with col_sum2:
-                st.metric("📝 日本語平均", f"{avg_japanese:.2f}/5")
-            with col_sum3:
-                st.metric("🔍 ロジック平均", f"{avg_logic:.2f}/5")
-            
-            st.success(f"✅ {len(corrected_data)}件の校正済みデータがあります")
-            
-            # プレビュー表示
-            with st.expander("📊 校正済みデータのプレビュー", expanded=False):
+                st.success(f"✅ {len(corrected_data)}件の校正済みデータがあります")
+                
+                # プレビュー表示
+                with st.expander("📊 校正済みデータのプレビュー", expanded=False):
                 display_columns = ['id', '質問', 'トンマナスコア', '日本語スコア', 'ロジックスコア', '総合スコア']
                 # スコアに応じて色付け
                 styled_df = result_df[display_columns].style.applymap(
@@ -1781,8 +1781,8 @@ if processing_mode == "🖊️ 手動入力モード":
                              'background-color: #ffebee' if isinstance(x, (int, float)) and x < 2 else '',
                     subset=['トンマナスコア', '日本語スコア', 'ロジックスコア', '総合スコア']
                 )
-                st.dataframe(styled_df)
-            
+                    st.dataframe(styled_df)
+                
                 # CSVダウンロードボタン
                 output_buffer = io.StringIO()
                 result_df.to_csv(output_buffer, index=False, encoding='utf-8-sig')
