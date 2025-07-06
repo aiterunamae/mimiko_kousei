@@ -1092,65 +1092,65 @@ if processing_mode == "🖊️ 手動入力モード":
                     st.write(f"**[{idx+1}]** ID: {row['id']} - {row['質問'][:80]}...")
             
             # 数値入力で選択
-                col1, col2 = st.columns([1, 3])
+            col1, col2 = st.columns([1, 3])
             with col1:
-            # number_inputを使用
-            row_number = st.number_input(
-                "データ番号",
-                min_value=1,
-                max_value=len(df),
-                value=1,
-                step=1,
-                help=f"1から{len(df)}の番号を入力"
-            )
+                # number_inputを使用
+                row_number = st.number_input(
+                    "データ番号",
+                    min_value=1,
+                    max_value=len(df),
+                    value=1,
+                    step=1,
+                    help=f"1から{len(df)}の番号を入力"
+                )
                 selected_row_idx = row_number - 1  # 0ベースのインデックスに変換
             
             with col2:
-            # 選択されたデータの簡易表示
-            if 0 <= selected_row_idx < len(df):
-                row = df.iloc[selected_row_idx]
-                st.write(f"**選択中:** ID: {row['id']} - {row['質問'][:50]}...")
-    
-        # 選択された行のデータ
-        selected_row = df.iloc[selected_row_idx]
-        
-        # プレビュー表示
-        with st.expander("選択されたデータの詳細", expanded=True):
-            st.write(f"**ID:** {selected_row['id']}")
-            st.write(f"**質問:** {selected_row['質問']}")
+                # 選択されたデータの簡易表示
+                if 0 <= selected_row_idx < len(df):
+                    row = df.iloc[selected_row_idx]
+                    st.write(f"**選択中:** ID: {row['id']} - {row['質問'][:50]}...")
             
-            # キーワード表示
-            keywords_display = []
-            for col in keyword_columns:
-                if pd.notna(selected_row[col]):
-                    category = ''.join([c for c in col if not c.isdigit()])
-                    keywords_display.append(f"{category}: {selected_row[col]}")
-            if keywords_display:
-                st.write(f"**キーワード:** {', '.join(keywords_display)}")
+            # 選択された行のデータ
+            selected_row = df.iloc[selected_row_idx]
             
-            st.write(f"**回答:**")
-            st.text_area("", value=selected_row['回答'], height=150, disabled=True)
-        
-        # 校正ボタンとリセットボタン
-        col_btn1, col_btn2 = st.columns([2, 1])
-        
-        with col_btn1:
-            do_correction = st.button("🔍 この回答を校正する", use_container_width=True)
-        
-        with col_btn2:
-            if f'correction_done_{selected_row_idx}' in st.session_state:
-                if st.button("🔄 結果をリセット", use_container_width=True):
-                    # 選択されたデータに関連するセッション状態をクリア
-                    keys_to_remove = []
-                    for key in st.session_state.keys():
-                        if f'_{selected_row_idx}' in key:
-                            keys_to_remove.append(key)
-                    
-                    for key in keys_to_remove:
-                        del st.session_state[key]
-                    
-                    st.success("校正結果をリセットしました")
-                    st.rerun()
+            # プレビュー表示
+            with st.expander("選択されたデータの詳細", expanded=True):
+                st.write(f"**ID:** {selected_row['id']}")
+                st.write(f"**質問:** {selected_row['質問']}")
+            
+                # キーワード表示
+                keywords_display = []
+                for col in keyword_columns:
+                    if pd.notna(selected_row[col]):
+                        category = ''.join([c for c in col if not c.isdigit()])
+                        keywords_display.append(f"{category}: {selected_row[col]}")
+                if keywords_display:
+                    st.write(f"**キーワード:** {', '.join(keywords_display)}")
+            
+                st.write(f"**回答:**")
+                st.text_area("", value=selected_row['回答'], height=150, disabled=True)
+            
+            # 校正ボタンとリセットボタン
+            col_btn1, col_btn2 = st.columns([2, 1])
+            
+            with col_btn1:
+                do_correction = st.button("🔍 この回答を校正する", use_container_width=True)
+            
+            with col_btn2:
+                if f'correction_done_{selected_row_idx}' in st.session_state:
+                    if st.button("🔄 結果をリセット", use_container_width=True):
+                        # 選択されたデータに関連するセッション状態をクリア
+                        keys_to_remove = []
+                        for key in st.session_state.keys():
+                            if f'_{selected_row_idx}' in key:
+                                keys_to_remove.append(key)
+                        
+                        for key in keys_to_remove:
+                            del st.session_state[key]
+                        
+                        st.success("校正結果をリセットしました")
+                        st.rerun()
             
             st.markdown('</div>', unsafe_allow_html=True)
         
