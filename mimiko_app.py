@@ -1074,15 +1074,12 @@ if processing_mode == "🖊️ 手動入力モード":
             except Exception as e:
                 st.error(f"CSVファイルの読み込みエラー: {e}")
         
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-    # CSV処理を手動入力モード内で処理
-    if processing_mode == "🖊️ 手動入力モード" and 'csv_data' in st.session_state:
-        df = st.session_state.csv_data
-        keyword_columns = st.session_state.keyword_columns
-        
-        # データ選択セクション
-        with st.container():
+        # CSV処理を手動入力モード内で処理
+        if 'csv_data' in st.session_state:
+            df = st.session_state.csv_data
+            keyword_columns = st.session_state.keyword_columns
+            
+            # データ選択セクション
             st.markdown('<div class="data-selection-section">', unsafe_allow_html=True)
             st.subheader("📝 データ選択")
             
@@ -1153,12 +1150,12 @@ if processing_mode == "🖊️ 手動入力モード":
                         st.rerun()
             
             st.markdown('</div>', unsafe_allow_html=True)
-        
-        # 個別校正実行
-        if do_correction or f'correction_done_{selected_row_idx}' in st.session_state:
-            # 校正結果セクション
-            st.markdown('<div class="result-section">', unsafe_allow_html=True)
-            st.subheader("📊 校正結果")
+            
+            # 個別校正実行
+            if do_correction or f'correction_done_{selected_row_idx}' in st.session_state:
+                # 校正結果セクション
+                st.markdown('<div class="result-section">', unsafe_allow_html=True)
+                st.subheader("📊 校正結果")
             # セッション状態の初期化
             if f'corrections_{selected_row_idx}' not in st.session_state:
                 st.session_state[f'corrections_{selected_row_idx}'] = {}
@@ -1704,7 +1701,7 @@ if processing_mode == "🖊️ 手動入力モード":
                                 for imp in st.session_state[f'selected_logic_{selected_row_idx}']:
                                     st.write(f"- {imp}")
             
-            st.markdown('</div>', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
         
         # 個別校正結果のダウンロード
         with st.container():
@@ -1801,6 +1798,8 @@ if processing_mode == "🖊️ 手動入力モード":
                 st.info("まだ校正済みのデータがありません。上記で個別に校正を実行してください。")
             
             st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
 
 else:  # 一括処理モード
     # 一括処理モードセクション
