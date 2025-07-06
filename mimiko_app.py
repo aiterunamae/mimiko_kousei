@@ -1783,21 +1783,21 @@ if processing_mode == "🖊️ 手動入力モード":
                 )
                 st.dataframe(styled_df)
             
-            # CSVダウンロードボタン
-            output_buffer = io.StringIO()
-            result_df.to_csv(output_buffer, index=False, encoding='utf-8-sig')
-            
-            col_dl1, col_dl2, col_dl3 = st.columns([1, 2, 1])
-            with col_dl2:
-                st.download_button(
-                    label="📥 個別校正結果をCSVでダウンロード",
-                    data=output_buffer.getvalue(),
-                    file_name=f"mimiko_individual_corrections_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-                    mime="text/csv",
-                    use_container_width=True,
-                    type="primary"
-                )
-        else:
+                # CSVダウンロードボタン
+                output_buffer = io.StringIO()
+                result_df.to_csv(output_buffer, index=False, encoding='utf-8-sig')
+                
+                col_dl1, col_dl2, col_dl3 = st.columns([1, 2, 1])
+                with col_dl2:
+                    st.download_button(
+                        label="📥 個別校正結果をCSVでダウンロード",
+                        data=output_buffer.getvalue(),
+                        file_name=f"mimiko_individual_corrections_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                        mime="text/csv",
+                        use_container_width=True,
+                        type="primary"
+                    )
+            else:
                 st.info("まだ校正済みのデータがありません。上記で個別に校正を実行してください。")
             
             st.markdown('</div>', unsafe_allow_html=True)
