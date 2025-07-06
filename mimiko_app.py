@@ -898,6 +898,16 @@ st.markdown("""
 </script>
 """, unsafe_allow_html=True)
 
+# シンプルなStreamlit要素非表示設定
+hide_streamlit_style = """
+<style>
+#MainMenu {visibility: hidden;}
+footer {visibility: hidden;}
+header {visibility: hidden;}
+</style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
 # メインヘッダー
 st.markdown("""
 <div class="main-header">
