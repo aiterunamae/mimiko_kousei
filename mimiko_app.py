@@ -958,47 +958,47 @@ st.markdown('<h2 class="section-header">⚙️ 詳細設定</h2>', unsafe_allow_
 
 # モデル選択
 selected_model = st.selectbox(
-        "🎯 モデル",
-        vertex_model_options,
-        index=0 if default_model not in vertex_model_options else vertex_model_options.index(default_model),
-        key="selected_model"
-    )
-    
-    # Thinking Budget設定（2.5モデルの場合のみ）
-    thinking_budget = 1024  # デフォルト値
-    if "2.5" in selected_model:
-        st.write("### 🧠 推論設定")
-        if "2.5-flash" in selected_model:
-            thinking_budget = st.slider(
-                "Thinking Budget",
-                min_value=0,
-                max_value=4096,
-                value=1024,
-                step=128,
-                help="推論に使用するトークン数。0に設定すると推論機能を無効化します。"
-            )
-        elif "2.5-pro" in selected_model:
-            thinking_budget = st.slider(
-                "Thinking Budget",
-                min_value=128,
-                max_value=4096,
-                value=1024,
-                step=128,
-                help="推論に使用するトークン数。Proモデルは最小128トークンが必要です。"
-            )
-    
-    # 校正ON/OFF設定
-    st.write("### 📋 校正設定")
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        enable_tonmana = st.checkbox("🎨 トンマナ校正", value=True, key="enable_tonmana")
-    
-    with col2:
-        enable_japanese = st.checkbox("📝 日本語校正", value=False, key="enable_japanese")
-    
-    with col3:
-        enable_logic = st.checkbox("🔍 ロジック校正", value=True, key="enable_logic")
+    "🎯 モデル",
+    vertex_model_options,
+    index=0 if default_model not in vertex_model_options else vertex_model_options.index(default_model),
+    key="selected_model"
+)
+
+# Thinking Budget設定（2.5モデルの場合のみ）
+thinking_budget = 1024  # デフォルト値
+if "2.5" in selected_model:
+    st.write("### 🧠 推論設定")
+    if "2.5-flash" in selected_model:
+        thinking_budget = st.slider(
+            "Thinking Budget",
+            min_value=0,
+            max_value=4096,
+            value=1024,
+            step=128,
+            help="推論に使用するトークン数。0に設定すると推論機能を無効化します。"
+        )
+    elif "2.5-pro" in selected_model:
+        thinking_budget = st.slider(
+            "Thinking Budget",
+            min_value=128,
+            max_value=4096,
+            value=1024,
+            step=128,
+            help="推論に使用するトークン数。Proモデルは最小128トークンが必要です。"
+        )
+
+# 校正ON/OFF設定
+st.write("### 📋 校正設定")
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    enable_tonmana = st.checkbox("🎨 トンマナ校正", value=True, key="enable_tonmana")
+
+with col2:
+    enable_japanese = st.checkbox("📝 日本語校正", value=False, key="enable_japanese")
+
+with col3:
+    enable_logic = st.checkbox("🔍 ロジック校正", value=True, key="enable_logic")
 
 st.markdown('</div>', unsafe_allow_html=True)
 
