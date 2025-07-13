@@ -917,14 +917,37 @@ st.markdown("""
 hide_streamlit_style = """
 <style>
 /* メインメニュー非表示 */
-#MainMenu {visibility: hidden;}
+#MainMenu {
+    visibility: hidden;
+    height: 0%;
+}
 
 /* フッター非表示（複数の方法） */
-footer {visibility: hidden !important;}
-footer {display: none !important;}
+footer {
+    visibility: hidden !important;
+    height: 0% !important;
+    display: none !important;
+}
 
 /* ヘッダー非表示 */
-header {visibility: hidden !important;}
+header {
+    visibility: hidden !important;
+    height: 0% !important;
+}
+
+/* ツールバー非表示 */
+div[data-testid="stToolbar"] {
+    visibility: hidden;
+    height: 0%;
+    position: fixed;
+}
+
+/* デコレーション非表示 */
+div[data-testid="stDecoration"] {
+    visibility: hidden;
+    height: 0%;
+    position: fixed;
+}
 
 /* Streamlit特有のクラスをターゲット */
 .viewerBadge_container__r5tak {display: none !important;}
@@ -942,7 +965,6 @@ header {visibility: hidden !important;}
 ._anchor_1e9tm_1 {display: none !important;}
 
 /* 右下の固定要素全て */
-div[data-testid="stDecoration"] {display: none !important;}
 div[data-testid="collapsedControl"] {display: none !important;}
 
 /* IFrameの場合の対策 */
@@ -952,6 +974,14 @@ div[data-testid="collapsedControl"] {display: none !important;}
 /* z-indexが高い要素を隠す */
 div[style*="z-index: 99999"] {display: none !important;}
 div[style*="z-index: 9999"] {display: none !important;}
+
+/* パディング調整 */
+.appview-container .main .block-container{
+    padding-top: 1rem;
+    padding-right: 3rem;
+    padding-left: 3rem;
+    padding-bottom: 1rem;
+}
 </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
@@ -963,16 +993,6 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Config確認用（一時的）
-with st.expander("🔧 設定確認（デバッグ用）", expanded=False):
-    st.write("### 現在の設定:")
-    st.write(f"- ツールバーモード: {st.get_option('client.toolbarMode')}")
-    st.write(f"- 統計収集: {st.get_option('browser.gatherUsageStats')}")
-    st.write(f"- 最大アップロードサイズ: {st.get_option('server.maxUploadSize')}MB")
-    st.write("### テーマ設定:")
-    st.write(f"- プライマリカラー: {st.get_option('theme.primaryColor')}")
-    st.write(f"- 背景色: {st.get_option('theme.backgroundColor')}")
-    st.write(f"- フォント: {st.get_option('theme.font')}")
 
 # Project IDが設定されていない場合の警告
 if not vertex_ai_project_id:
