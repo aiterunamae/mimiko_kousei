@@ -3,9 +3,6 @@
 # "auto"（デフォルト）、"viewer"（共有モード）、"minimal"（最小）から選択
 toolbarMode = "minimal"
 
-# ウィンドウタイトルを変更（テスト用）
-showErrorDetails = false
-
 # 開発者メニューを非表示
 showErrorDetails = false
 
