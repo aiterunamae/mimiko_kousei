@@ -916,30 +916,12 @@ st.markdown("""
 # Streamlit要素非表示設定（複数の方法を組み合わせ）
 hide_streamlit_style = """
 <style>
-/* メインメニュー非表示 */
-#MainMenu {
-    visibility: hidden;
-    height: 0%;
-}
-
-/* フッター非表示（複数の方法） */
-footer {
-    visibility: hidden !important;
-    height: 0% !important;
-    display: none !important;
-}
-
-/* ヘッダー非表示 */
-header {
-    visibility: hidden !important;
-    height: 0% !important;
-}
-
 /* ツールバー非表示 */
 div[data-testid="stToolbar"] {
     visibility: hidden;
     height: 0%;
     position: fixed;
+    z-index: 100;
 }
 
 /* デコレーション非表示 */
@@ -947,6 +929,30 @@ div[data-testid="stDecoration"] {
     visibility: hidden;
     height: 0%;
     position: fixed;
+    z-index: 100;
+}
+
+/* メインメニュー非表示 */
+#MainMenu {
+    visibility: hidden;
+    height: 0%;
+}
+
+/* ヘッダー非表示 */
+header {
+    visibility: hidden;
+    height: 0%;
+}
+
+/* ヘッダーのz-index調整 */
+header[data-testid="stHeader"] {
+    z-index: -1;
+}
+
+/* フッター非表示 */
+footer {
+    visibility: hidden;
+    height: 0%;
 }
 
 /* Streamlit特有のクラスをターゲット */
@@ -981,6 +987,14 @@ div[style*="z-index: 9999"] {display: none !important;}
     padding-right: 3rem;
     padding-left: 3rem;
     padding-bottom: 1rem;
+}
+
+/* レポートビューコンテナのパディング調整 */
+.reportview-container {
+    padding-top: 0rem;
+    padding-right: 3rem;
+    padding-left: 3rem;
+    padding-bottom: 0rem;
 }
 </style>
 """
