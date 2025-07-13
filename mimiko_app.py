@@ -963,6 +963,17 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+# Config確認用（一時的）
+with st.expander("🔧 設定確認（デバッグ用）", expanded=False):
+    st.write("### 現在の設定:")
+    st.write(f"- ツールバーモード: {st.get_option('client.toolbarMode')}")
+    st.write(f"- 統計収集: {st.get_option('browser.gatherUsageStats')}")
+    st.write(f"- 最大アップロードサイズ: {st.get_option('server.maxUploadSize')}MB")
+    st.write("### テーマ設定:")
+    st.write(f"- プライマリカラー: {st.get_option('theme.primaryColor')}")
+    st.write(f"- 背景色: {st.get_option('theme.backgroundColor')}")
+    st.write(f"- フォント: {st.get_option('theme.font')}")
+
 # Project IDが設定されていない場合の警告
 if not vertex_ai_project_id:
     st.error("⚠️ Vertex AI Project IDが設定されていません。secrets.tomlファイルに設定してください。")
