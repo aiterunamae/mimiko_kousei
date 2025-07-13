@@ -1152,7 +1152,7 @@ if processing_mode == "🖊️ 手動入力モード":
         
         with col2:
             # 数値入力
-        row_number = st.number_input(
+            row_number = st.number_input(
             "データ番号",
             min_value=1,
             max_value=len(df),
@@ -1163,7 +1163,7 @@ if processing_mode == "🖊️ 手動入力モード":
             )
             # 入力値が変更された場合、セッション状態を更新
             if row_number != st.session_state.selected_data_number:
-            st.session_state.selected_data_number = row_number
+                st.session_state.selected_data_number = row_number
         
         with col3:
             # 次へボタン
