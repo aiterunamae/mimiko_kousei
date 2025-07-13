@@ -3,6 +3,9 @@
 # "auto"（デフォルト）、"viewer"（共有モード）、"minimal"（最小）から選択
 toolbarMode = "minimal"
 
+# ウィンドウタイトルを変更（テスト用）
+showErrorDetails = false
+
 # 開発者メニューを非表示
 showErrorDetails = false
 
@@ -11,15 +14,19 @@ showErrorDetails = false
 hideTopBar = false
 
 [theme]
-primaryColor = "#667eea"  # 紫色（メインカラー）
-backgroundColor = "#FFFFFF"  # 白色
-secondaryBackgroundColor = "#F0F2F6"  # 薄いグレー
-textColor = "#262730"  # 濃いグレー
-font = "sans serif"
+# テスト用に明確に分かる色に変更
+primaryColor = "#FF0000"  # 赤色（ボタンやリンクの色）
+backgroundColor = "#FFFFE0"  # 薄い黄色（背景色）
+secondaryBackgroundColor = "#90EE90"  # 薄い緑色（サイドバーやエクスパンダーの背景）
+textColor = "#000080"  # ネイビー（テキストの色）
+font = "monospace"  # 等幅フォント
 
 [server]
 enableCORS = false
 enableXsrfProtection = true
+
+# ファイルサイズ制限を変更（テスト用）
+maxUploadSize = 100  # 100MBに設定
 
 [browser]
 gatherUsageStats = false
