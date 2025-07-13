@@ -1138,25 +1138,44 @@ if processing_mode == "🖊️ 手動入力モード":
             for idx, row in df.iterrows():
                 st.write(f"**[{idx+1}]** ID: {row['id']} - {row['質問'][:80]}...")
             
-        # 数値入力で選択
-        col1, col2 = st.columns([1, 3])
+        # データ選択コントロール
+        # セッション状態でデータ番号を管理
+        if 'selected_data_number' not in st.session_state:
+            st.session_state.selected_data_number = 1
+        
+        col1, col2, col3 = st.columns([1, 2, 1])
+        
         with col1:
-                # number_inputを使用
-                row_number = st.number_input(
-                    "データ番号",
-                    min_value=1,
-                    max_value=len(df),
-                    value=1,
-                    step=1,
-                    help=f"1から{len(df)}の番号を入力"
-                )
-                selected_row_idx = row_number - 1  # 0ベースのインデックスに変換
-            
+            # 前へボタン
+            if st.button("← 前へ", use_container_width=True, disabled=(st.session_state.selected_data_number <= 1)):
+                st.session_state.selected_data_number -= 1
+        
         with col2:
-            # 選択されたデータの簡易表示
-            if 0 <= selected_row_idx < len(df):
-                row = df.iloc[selected_row_idx]
-                st.write(f"**選択中:** ID: {row['id']} - {row['質問'][:50]}...")
+            # 数値入力
+            row_number = st.number_input(
+                "データ番号",
+                min_value=1,
+                max_value=len(df),
+                value=st.session_state.selected_data_number,
+                step=1,
+                help=f"1から{len(df)}の番号を入力",
+                key="data_number_input"
+            )
+            # 入力値が変更された場合、セッション状態を更新
+            if row_number != st.session_state.selected_data_number:
+                st.session_state.selected_data_number = row_number
+        
+        with col3:
+            # 次へボタン
+            if st.button("次へ →", use_container_width=True, disabled=(st.session_state.selected_data_number >= len(df))):
+                st.session_state.selected_data_number += 1
+        
+        selected_row_idx = st.session_state.selected_data_number - 1  # 0ベースのインデックスに変換
+        
+        # 選択されたデータの簡易表示
+        if 0 <= selected_row_idx < len(df):
+            row = df.iloc[selected_row_idx]
+            st.info(f"**選択中:** ID: {row['id']} - {row['質問'][:50]}...")
             
         # 選択された行のデータ
         selected_row = df.iloc[selected_row_idx]
